@@ -3,6 +3,9 @@ package com.music.bitchord.playback.smart
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -110,14 +113,38 @@ class AnalysisStore(
         runCatching {
             directory.mkdirs()
             val file = File(directory, fileNameFor(trackId))
-            // Written aside and renamed, so a kill mid-write leaves the old
-            // entry rather than a truncated one.
+            // Written aside and moved into place, so a kill mid-write leaves the old entry
+            // rather than a truncated one.
             val temporary = File(directory, file.name + ".tmp")
-            temporary.writeText(json.encodeToString(Stored.serializer(), Stored.of(analysis)))
-            if (!temporary.renameTo(file)) temporary.delete()
+            try {
+                temporary.writeText(json.encodeToString(Stored.serializer(), Stored.of(analysis)))
+                moveInto(temporary, file)
+            } finally {
+                // A no-op once the move has taken it.
+                temporary.delete()
+            }
             known[trackId] = true
         }.onFailure { AnalysisLog.warn("Could not store analysis for $trackId", it) }
         prune()
+    }
+
+    /**
+     * Atomic where the filesystem allows it, replacing where it does not.
+     *
+     * Not `File.renameTo`: on Windows that fails outright when the destination exists, so
+     * re-analysing a track would quietly leave the old entry in place.
+     */
+    private fun moveInto(temporary: File, file: File) {
+        try {
+            Files.move(
+                temporary.toPath(),
+                file.toPath(),
+                StandardCopyOption.ATOMIC_MOVE,
+                StandardCopyOption.REPLACE_EXISTING,
+            )
+        } catch (_: AtomicMoveNotSupportedException) {
+            Files.move(temporary.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
     }
 
     /**

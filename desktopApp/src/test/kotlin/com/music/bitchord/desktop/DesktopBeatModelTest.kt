@@ -20,11 +20,11 @@ class DesktopBeatModelTest {
         val model = File(DesktopAnalysisRuntime.modelPath(BeatTracker.MODEL_ASSET))
         assertTrue(model.isFile && model.length() > 0, "the model was not unpacked")
 
-        val options = OrtSession.SessionOptions().apply {
-            setIntraOpNumThreads(2)
-            setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
-        }
         val outcome = runCatching {
+            val options = OrtSession.SessionOptions().apply {
+                setIntraOpNumThreads(2)
+                setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
+            }
             OrtEnvironment.getEnvironment().createSession(model.absolutePath, options).use { session ->
                 session.inputNames.first()
             }

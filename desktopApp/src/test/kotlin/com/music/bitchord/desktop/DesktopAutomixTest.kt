@@ -95,14 +95,17 @@ class DesktopAutomixTest {
         DesktopAnalysisRuntime.ensureStarted()
         if (!DesktopAnalysisRuntime.available) return@runBlocking
 
-        val id = "cache-probe-${'$'}{clickTrackFile(120.0, 1.0).name}"
-        val first = DesktopTrackAnalyzer()
+        // Named after the track, so every run measures one the cache has never seen. A fixed id
+        // would pass on the strength of the file the previous run left behind.
         val seconds = 60.0
         val file = clickTrackFile(120.0, seconds)
+        val id = "cache-probe-${file.name}"
+        val first = DesktopTrackAnalyzer()
         first.request(Song(id, id, "Artist", null), DesktopStream(url = file.absolutePath), seconds)
-        repeat(600) {
-            if (first.isAnalysed(id)) return@repeat
+        var waited = 0
+        while (!first.isAnalysed(id) && waited < 600) {
             kotlinx.coroutines.delay(100)
+            waited++
         }
         val measured = first.analysisFor(id)
         assertTrue(measured.isUsable, "the probe track was not analysed")

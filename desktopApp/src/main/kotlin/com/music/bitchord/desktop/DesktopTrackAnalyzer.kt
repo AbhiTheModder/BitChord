@@ -102,8 +102,8 @@ internal class DesktopTrackAnalyzer(
                     .getOrNull()
                 if (analysis == null) failed += trackId
                 if (analysis != null) {
-                    results[trackId] = analysis
                     store.save(trackId, analysis)
+                    results[trackId] = analysis
                     DesktopTrackLog.log(
                         "analysed '${song.title}': ${"%.1f".format(analysis.bpm)} bpm" +
                             ", ${analysis.downbeats.size} downbeats" +
