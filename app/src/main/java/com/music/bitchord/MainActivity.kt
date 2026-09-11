@@ -1,8 +1,10 @@
 package com.music.bitchord
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -89,7 +91,9 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
@@ -123,6 +127,7 @@ import com.music.bitchord.ui.screens.AccountAndScrobblingScreen
 import com.music.bitchord.ui.screens.DiscordDialog
 import com.music.bitchord.ui.screens.DiscordDialogHost
 import com.music.bitchord.ui.screens.DiscordScreen
+import com.music.bitchord.ui.screens.EqualizerScreen
 import com.music.bitchord.ui.screens.HistoryScreen
 import com.music.bitchord.ui.screens.SettingsScreen
 import com.music.bitchord.ui.screens.SourceEditorAlert
@@ -181,6 +186,7 @@ import com.music.bitchord.ui.components.TopBarDownloadButton
 import com.music.bitchord.ui.components.TopFadeBlur
 import com.music.bitchord.ui.components.topBarContentPadding
 import com.music.bitchord.ui.components.AppLanguageDialog
+import com.music.bitchord.ui.components.TranslationLanguageDialog
 import com.music.bitchord.ui.components.LyricsSourcesDialog
 import com.music.bitchord.ui.components.UpdateAvailableDialog
 import com.music.bitchord.ui.icons.BitChordIcons
@@ -217,6 +223,19 @@ import java.util.Locale
 /** A full first screen of a native YouTube Music radio before AutoPlay tops it up. */
 private const val INITIAL_RADIO_TRACKS = 24
 
+/**
+ * The same context, reporting no [Configuration.fontWeightAdjustment].
+ *
+ * Only fonts are resolved through it, so the snapshot a configuration context
+ * takes is not a staleness risk here: the answer this one exists to give is a
+ * constant zero, whatever the device later changes.
+ */
+private fun Context.withoutFontWeightAdjustment(): Context {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return this
+    val configuration = Configuration(resources.configuration).apply { fontWeightAdjustment = 0 }
+    return createConfigurationContext(configuration)
+}
+
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -227,6 +246,25 @@ class MainActivity : AppCompatActivity() {
         // Likewise for a link tapped or shared from another app — see [MusicLink].
         MusicLink.consume(intent)
         setContent {
+            // "Bold text" (Accessibility, Android 12+) sets a configuration-wide
+            // fontWeightAdjustment that Compose adds to *every* weight it
+            // resolves. The type scale here is already heavy by design — W600 to
+            // W800 — so the adjustment pushes most of the app onto the single
+            // heaviest SF Pro cut and the hierarchy between a title and its
+            // subtitle collapses. Body text is what that setting is for, and
+            // BitChord's body text is already the weight it asks for.
+            //
+            // The adjustment is read from the *context's* resources, not from
+            // LocalConfiguration, so opting out means handing the tree a
+            // resolver built from a context that reports no adjustment.
+            // LocalFontFamilyResolver is installed with `providesDefault`, so
+            // this override survives into the dialog and bottom-sheet
+            // subcompositions rather than being reset by their own owner.
+            val context = LocalContext.current
+            val fontFamilyResolver = remember(context) {
+                createFontFamilyResolver(context.withoutFontWeightAdjustment())
+            }
+            CompositionLocalProvider(LocalFontFamilyResolver provides fontFamilyResolver) {
             val theme by AppSettings.themeMode.collectAsStateWithLifecycle()
             val highPerformance by AppSettings.highPerformanceMode.collectAsStateWithLifecycle()
             val liquidGlassEnabled by AppSettings.liquidGlass.collectAsStateWithLifecycle()
@@ -279,6 +317,7 @@ class MainActivity : AppCompatActivity() {
                     BitChordApp(darkTheme = darkTheme, windowWidth = maxWidth, appBackdrop = appBackdrop)
                 }
                 }
+            }
             }
         }
     }
@@ -391,6 +430,7 @@ private fun BitChordApp(
     var replaySharePage by remember { mutableStateOf<ReplayStoryPage?>(null) }
     var showAccountScrobbling by remember { mutableStateOf(false) }
     var showSources by remember { mutableStateOf(false) }
+    var showEqualizer by remember { mutableStateOf(false) }
     var showSpotifyCanvasAuth by remember { mutableStateOf(false) }
     
     // Hosted here rather than inside SourcesScreen so its frosted card has
@@ -406,6 +446,7 @@ private fun BitChordApp(
     var librarySortMenuOpen by remember { mutableStateOf(false) }
     var showLyricsSources by remember { mutableStateOf(false) }
     var showAppLanguage by remember { mutableStateOf(false) }
+    var showTranslationLanguage by remember { mutableStateOf(false) }
     var showAccountSelector by remember { mutableStateOf(false) }
     var showListenBrainzLogin by remember { mutableStateOf(false) }
     var showLastfmLogin by remember { mutableStateOf(false) }
@@ -1597,7 +1638,7 @@ private fun BitChordApp(
         }
         BackHandler(
             enabled = detail != null && !showSettings && !showAccountScrobbling && !showSources &&
-                !showReplay,
+                !showEqualizer && !showReplay,
         ) { viewModel.closeDetail() }
         BackHandler(enabled = selectedMoodGenre != null && detail == null && !showSettings && !showReplay) {
             viewModel.closeMoodGenre()
@@ -1611,10 +1652,13 @@ private fun BitChordApp(
         BackHandler(enabled = showSources) {
             showSources = false
         }
+        BackHandler(enabled = showEqualizer) {
+            showEqualizer = false
+        }
         // One back step out of Settings, or out of any tab but Home, lands on
         // Home rather than exiting — only Home itself hands back to the system,
         // which is what actually closes/minimizes the app.
-        BackHandler(enabled = showSettings && !showAccountScrobbling && !showSources) {
+        BackHandler(enabled = showSettings && !showAccountScrobbling && !showSources && !showEqualizer) {
             showSettings = false
             // Only when Settings was the whole of what was on screen. Opened
             // over Replay or over a release page, closing it reveals that again
@@ -1623,7 +1667,8 @@ private fun BitChordApp(
         }
         BackHandler(
             enabled = detail == null && !showSettings && !showAccountScrobbling &&
-                !showSources && !showReplay && selectedMoodGenre == null && selectedTab != TAB_HOME,
+                !showSources && !showEqualizer && !showReplay && selectedMoodGenre == null &&
+                selectedTab != TAB_HOME,
         ) {
             selectedTab = TAB_HOME
         }
@@ -1658,6 +1703,7 @@ private fun BitChordApp(
                         libraryShowAll != null && detail == null -> "library_show_all"
                         showAccountScrobbling -> "account_scrobbling"
                         showSources -> "sources"
+                        showEqualizer -> "equalizer"
                         // Above Replay, not below it. The top bar's account
                         // button sets `showSettings` from every page including
                         // this one, so with Replay winning the tie the button
@@ -1829,6 +1875,8 @@ private fun BitChordApp(
                             contentPadding = listPadding,
                             onEditSource = { editingSource = it },
                         )
+                    } else if (key == "equalizer") {
+                        EqualizerScreen(contentPadding = listPadding)
                     } else if (key == "settings") {
                         SettingsScreen(
                             windowWidth = windowWidth,
@@ -1840,11 +1888,13 @@ private fun BitChordApp(
                             },
                             onSignOut = { viewModel.signOut() },
                             onAccountScrobbling = { showAccountScrobbling = true },
+                            onEqualizer = { showEqualizer = true },
                             onOpenReplay = {
                                 showSettings = false
                                 showReplay = true
                             },
                             onLyricsSources = { showLyricsSources = true },
+                            onTranslationLanguage = { showTranslationLanguage = true },
                             onSources = { showSources = true },
                             onSpotifyCanvasAuth = { showSpotifyCanvasAuth = true },
                             onAppLanguage = { showAppLanguage = true },
@@ -2168,8 +2218,18 @@ private fun BitChordApp(
                 // Every top bar is a fade rather than a pane — see [TopFadeBlur].
                 // Drawn before the bar so the bar's own content sits on top of it.
                 val isDetailVisible = detail != null && !isLocalDetail && !showSettings &&
-                    !showAccountScrobbling && !showSources && !showReplay
-                TopFadeBlur(
+                    !showAccountScrobbling && !showSources && !showEqualizer && !showReplay
+                // Search is the one page that doesn't get the fade. Its field sits
+                // directly under the bar rather than a page's worth of content, so
+                // the strip's 32dp run past the bar lands on the field itself and
+                // reads as a smear over the thing being typed into — a blur with
+                // nothing behind it to blur. The same conditions as the page key in
+                // [AnimatedContent] above, since anything stacked over the tab is a
+                // page that does want the fade.
+                val isSearchVisible = selectedTab == TAB_SEARCH && detail == null &&
+                    !showSettings && !showAccountScrobbling && !showSources && !showEqualizer &&
+                    !showReplay && !showDiscord && !showHistory && libraryShowAll == null
+                if (!isSearchVisible) TopFadeBlur(
                     hazeState = hazeState,
                     // Replay paints its own full-bleed black backdrop up under the
                     // status bar, exactly as a release page's artwork does.
@@ -2193,6 +2253,7 @@ private fun BitChordApp(
                         libraryShowAll != null && detail == null -> libraryShowAll?.title.orEmpty()
                         showAccountScrobbling -> stringResource(R.string.account_scrobbling)
                         showSources -> stringResource(R.string.sources)
+                        showEqualizer -> stringResource(R.string.equalizer)
                         showSettings -> stringResource(R.string.settings)
                         showReplay -> stringResource(R.string.replay)
                         detail != null -> detail.title
@@ -2204,7 +2265,8 @@ private fun BitChordApp(
                     // Search has no large in-list header to hand the title back to —
                     // the field takes that space — so its bar title is always up.
                     scrolled = when {
-                        showSettings || showAccountScrobbling || showSources || showDiscord || showHistory ||
+                        showSettings || showAccountScrobbling || showSources || showEqualizer ||
+                            showDiscord || showHistory ||
                             (libraryShowAll != null && detail == null) || selectedMoodGenre != null -> true
                         // The page leads with its own large "Replay", so the bar
                         // stays out of the way until that has been scrolled off.
@@ -2220,6 +2282,7 @@ private fun BitChordApp(
                         libraryShowAll != null && detail == null -> ({ libraryShowAll = null })
                         showAccountScrobbling -> ({ showAccountScrobbling = false })
                         showSources -> ({ showSources = false })
+                        showEqualizer -> ({ showEqualizer = false })
                         showSettings -> ({ showSettings = false })
                         showReplay -> ({ showReplay = false })
                         detail != null -> ({ viewModel.closeDetail(); Unit })
@@ -2230,7 +2293,9 @@ private fun BitChordApp(
                     actions = {
                         // Only worth surfacing where there's room for it and it won't
                         // be mistaken for a per-page action — Home, at rest.
-                        if (!showSettings && !showAccountScrobbling && !showSources && detail == null && selectedTab == TAB_HOME) {
+                        if (!showSettings && !showAccountScrobbling && !showSources && !showEqualizer &&
+                            detail == null && selectedTab == TAB_HOME
+                        ) {
                             updateNotice?.let { update ->
                                 IconButton(onClick = { showUpdateDialog = true }) {
                                     Icon(
@@ -2376,6 +2441,7 @@ private fun BitChordApp(
                         showSettings = false
                         showAccountScrobbling = false
                         showSources = false
+                        showEqualizer = false
                         showReplay = false
                         showHistory = false
                         libraryShowAll = null
@@ -3015,6 +3081,14 @@ private fun BitChordApp(
             AppLanguageDialog(
                 hazeState = hazeState,
                 onDismiss = { showAppLanguage = false },
+            )
+        }
+
+        if (showTranslationLanguage) {
+            BackHandler { showTranslationLanguage = false }
+            TranslationLanguageDialog(
+                hazeState = hazeState,
+                onDismiss = { showTranslationLanguage = false },
             )
         }
 
