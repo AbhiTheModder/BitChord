@@ -20,6 +20,7 @@ internal object DesktopAwtTray {
 
     /** The logo, rasterised. */
     fun setIcon(rendered: BufferedImage?) {
+        if (rendered == null) return
         synchronized(lock) {
             image = rendered
             icon?.image = rendered

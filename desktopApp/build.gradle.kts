@@ -134,11 +134,25 @@ val crossBuildingForWindows = targetOs == "windows" && !hostIsWindows
  * current shell does — it fails with a bare "No such file or directory" while
  * `cmake --version` works fine in the terminal beside it.
  */
-fun findOnPath(tool: String): File? = System.getenv("PATH").orEmpty()
-    .split(File.pathSeparator)
-    .filter(String::isNotBlank)
-    .map { File(it, tool) }
-    .firstOrNull { it.canExecute() }
+fun findOnPath(tool: String): File? {
+    // Windows keeps the extension on the file and off the command line, so a bare name matches
+    // nothing on disk: PATHEXT is the list a shell would have tried.
+    val names = if (!hostIsWindows) {
+        listOf(tool)
+    } else {
+        val extensions = System.getenv("PATHEXT").orEmpty()
+            .ifBlank { ".COM;.EXE;.BAT;.CMD" }
+            .split(';')
+            .filter(String::isNotBlank)
+        listOf(tool) + extensions.map { tool + it.lowercase() }
+    }
+    return System.getenv("PATH").orEmpty()
+        .split(File.pathSeparator)
+        .filter(String::isNotBlank)
+        .flatMap { directory -> names.map { File(directory, it) } }
+        // A PATHEXT match is executable by definition, and Windows' own canExecute is unreliable.
+        .firstOrNull { it.isFile && (hostIsWindows || it.canExecute()) }
+}
 
 fun cmakeBinary(): String = findOnPath("cmake")?.absolutePath ?: "cmake"
 
