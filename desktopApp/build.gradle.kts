@@ -350,7 +350,7 @@ compose.desktop {
             )
             packageName = "BitChord"
             packageVersion = appVersion
-            description = "Aesthetic YouTube Music client"
+            description = if (targetOs == "windows") "BitChord" else "Aesthetic YouTube Music client"
             vendor = "BitChord contributors"
             copyright = "Copyright © 2026 BitChord contributors"
 
