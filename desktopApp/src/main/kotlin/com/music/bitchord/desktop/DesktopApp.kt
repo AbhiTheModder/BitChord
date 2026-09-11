@@ -281,6 +281,14 @@ import org.jetbrains.compose.resources.Font as composeFont
 import org.jetbrains.compose.resources.painterResource
 import java.util.UUID
 
+/**
+ * The margin every page keeps from the window's edge.
+ *
+ * One value, named, because the pages were carrying their own: most used 28 and Replay used 38, so
+ * opening Replay after anything else stepped the whole page inward by ten points.
+ */
+internal val DesktopPageGutter = 28.dp
+
 internal val DesktopBackground = Color.Black
 internal val DesktopSurface = Color(0xFF0D0D0F)
 private val DesktopSurfaceRaised = Color(0xFF1C1C1E)
@@ -436,29 +444,22 @@ fun BitChordDesktopApp() {
     var remoteHistory by remember { mutableStateOf<List<Song>>(emptyList()) }
     var likedIds by remember { mutableStateOf(persistence.likedIds()) }
     var dislikedIds by remember { mutableStateOf(persistence.dislikedIds()) }
-    var songMenuOpen by remember { mutableStateOf(false) }
+    val overlays = remember { DesktopOverlays() }
     var downloads by remember { mutableStateOf(persistence.downloads()) }
     var localSongs by remember { mutableStateOf<List<Song>>(emptyList()) }
     val downloadQueue by DesktopDownloadQueue.active.collectAsState()
     val downloadInProgress = downloadQueue.keys
-    var downloadManagerOpen by remember { mutableStateOf(false) }
     var playlists by remember { mutableStateOf(persistence.playlists()) }
-    var replayOpen by remember { mutableStateOf(false) }
     var statsRevision by remember { mutableStateOf(0L) }
     var replayPeriod by remember { mutableStateOf(DesktopReplayPeriod.ALL_TIME) }
     val replayHolder = remember { DesktopAccounts.active()?.name.orEmpty() }
     var replaySummary by remember { mutableStateOf(DesktopListeningStats.summary()) }
     var statsCountedSongs by remember { mutableStateOf<Set<String>>(emptySet()) }
-    var playlistDialogOpen by remember { mutableStateOf(false) }
     var playlistTarget by remember { mutableStateOf<Song?>(null) }
     // One busy flag and one message for every playlist edit: only one of them can be in flight,
     // because each is driven by a dialog that is modal.
     var playlistBusy by remember { mutableStateOf(false) }
     var playlistError by remember { mutableStateOf<String?>(null) }
-    var renameOpen by remember { mutableStateOf(false) }
-    var deleteOpen by remember { mutableStateOf(false) }
-    var queueOpen by remember { mutableStateOf(false) }
-    var nowPlayingOpen by remember { mutableStateOf(false) }
     // The album and artist pages the playing track belongs to, looked up while
     // the player is open. Whatever started a track knew its title and artwork
     // but rarely its ids — a home-feed tile carries neither — so without this
@@ -469,7 +470,6 @@ fun BitChordDesktopApp() {
     var playerPanel by remember { mutableStateOf(DesktopPlayerPanel.LYRICS) }
     // Settings is a modal over whatever page is open, the way Music puts its own preferences in a
     // sheet rather than a navigation destination.
-    var settingsOpen by remember { mutableStateOf(false) }
     var autoplay by remember { mutableStateOf(persistence.boolean("autoplay", true)) }
     var dontRepeatSuggestions by remember {
         mutableStateOf(persistence.boolean(KEY_DONT_REPEAT_SUGGESTIONS, false))
@@ -519,7 +519,6 @@ fun BitChordDesktopApp() {
     var legacyMeshGradient by remember { mutableStateOf(persistence.boolean("legacy_mesh_gradient", false)) }
     var animatedCanvas by remember { mutableStateOf(persistence.boolean("animated_canvas", true)) }
     var spotifyCanvasCookie by remember { mutableStateOf(DesktopSpotifyToken.cookie()) }
-    var spotifyCanvasSetupOpen by remember { mutableStateOf(false) }
     var showNerdStats by remember { mutableStateOf(persistence.boolean("show_nerd_stats", false)) }
     var syncedLyrics by remember {
         mutableStateOf(persistence.boolean(DesktopLyricsClient.KEY_SYNCED_LYRICS, true))
@@ -532,19 +531,10 @@ fun BitChordDesktopApp() {
     }
     var lyricsOrder by remember { mutableStateOf(persistence.lyricsSourceOrder()) }
     var lyricsOn by remember { mutableStateOf(persistence.lyricsEnabledSources()) }
-    var lyricsSourcesOpen by remember { mutableStateOf(false) }
-    var translationLanguageOpen by remember { mutableStateOf(false) }
-    var equalizerOpen by remember { mutableStateOf(false) }
-    var lastfmLoginOpen by remember { mutableStateOf(false) }
-    var listenBrainzTokenOpen by remember { mutableStateOf(false) }
-    var discordTokenOpen by remember { mutableStateOf(false) }
-    var integrationsOpen by remember { mutableStateOf(false) }
     var fullBleedArtwork by remember { mutableStateOf(persistence.boolean("full_bleed_artwork", false)) }
     var accounts by remember { mutableStateOf(DesktopAccounts.accounts()) }
     var activeAccountId by remember { mutableStateOf(DesktopAccounts.activeAccountId()) }
     var activeProfileId by remember { mutableStateOf(DesktopAccounts.activeProfileId()) }
-    var accountsOpen by remember { mutableStateOf(false) }
-    var signInOpen by remember { mutableStateOf(false) }
     var signInBusy by remember { mutableStateOf<String?>(null) }
     var signInError by remember { mutableStateOf<String?>(null) }
     val activeAccount = accounts.firstOrNull { it.accountId == activeAccountId } ?: accounts.firstOrNull()
@@ -688,8 +678,8 @@ fun BitChordDesktopApp() {
             accounts = withContext(Dispatchers.IO) { DesktopAccounts.accounts() }
             activeAccountId = DesktopAccounts.activeAccountId()
             activeProfileId = DesktopAccounts.activeProfileId()
-            signInOpen = false
-            accountsOpen = false
+            overlays.signIn = false
+            overlays.accounts = false
         } finally {
             signInBusy = null
         }
@@ -945,10 +935,10 @@ fun BitChordDesktopApp() {
     }
 
     fun closePlaylistDialogs() {
-        playlistDialogOpen = false
+        overlays.playlistDialog = false
         playlistTarget = null
-        renameOpen = false
-        deleteOpen = false
+        overlays.rename = false
+        overlays.delete = false
         playlistError = null
         playlistBusy = false
     }
@@ -1246,12 +1236,12 @@ fun BitChordDesktopApp() {
         if (destination != DesktopDestination.HISTORY || !youtubeSignedIn) return@LaunchedEffect
         DesktopSearchClient.history().onSuccess { remoteHistory = it }
     }
-    LaunchedEffect(selectedSong?.videoId, nowPlayingOpen) {
+    LaunchedEffect(selectedSong?.videoId, overlays.nowPlaying) {
         trackLinks = null
         val current = selectedSong ?: return@LaunchedEffect
         // Only while the player is up, so playing from the mini player costs
         // nothing, and only when something is actually missing.
-        if (!nowPlayingOpen) return@LaunchedEffect
+        if (!overlays.nowPlaying) return@LaunchedEffect
         if (current.artistId != null && current.albumId != null) return@LaunchedEffect
         trackLinks = DesktopSearchClient.trackLinks(current.videoId).getOrNull()
     }
@@ -1490,7 +1480,7 @@ fun BitChordDesktopApp() {
         }
         openedArtist = null
         openedCollection = null
-        replayOpen = false
+        overlays.replay = false
         selectedMoodGenre = null
         destination = next
     }
@@ -1570,7 +1560,7 @@ fun BitChordDesktopApp() {
             // so it has to raise the window before it does anything inside it.
             onActivate = {
                 DesktopWindowVisibility.show()
-                nowPlayingOpen = true
+                overlays.nowPlaying = true
             },
             onPlayPause = { if (selectedSong != null) playbackEngine.togglePlayPause() },
         )
@@ -1599,11 +1589,11 @@ fun BitChordDesktopApp() {
             onPrevious = ::playPrevious,
             onOpenPlayer = {
                 DesktopWindowVisibility.show()
-                nowPlayingOpen = true
+                overlays.nowPlaying = true
             },
             onOpenSettings = {
                 DesktopWindowVisibility.show()
-                settingsOpen = true
+                overlays.settings = true
             },
             onQuit = { exitProcess(0) },
         )
@@ -1900,7 +1890,7 @@ fun BitChordDesktopApp() {
                 backdrop = {
                     DesktopPageBackdrop(
                         artworkUrl = replaySummary.songs.firstOrNull()?.song?.thumbnailUrl
-                            .takeIf { replayOpen },
+                            .takeIf { overlays.replay },
                     )
                 },
                 modifier = Modifier.onPreviewKeyEvent { event ->
@@ -1921,16 +1911,16 @@ fun BitChordDesktopApp() {
                         // One layer at a time, innermost first: the queue popover, then the
                         // player's own side panel, then the player.
                         Key.Escape -> when {
-                            queueOpen -> {
-                                queueOpen = false
+                            overlays.queue -> {
+                                overlays.queue = false
                                 true
                             }
-                            nowPlayingOpen && playerPanel != DesktopPlayerPanel.NONE -> {
+                            overlays.nowPlaying && playerPanel != DesktopPlayerPanel.NONE -> {
                                 playerPanel = DesktopPlayerPanel.NONE
                                 true
                             }
-                            nowPlayingOpen -> {
-                                nowPlayingOpen = false
+                            overlays.nowPlaying -> {
+                                overlays.nowPlaying = false
                                 true
                             }
                             else -> false
@@ -1954,26 +1944,26 @@ fun BitChordDesktopApp() {
                             repeatMode = it
                             persistence.saveString("repeat_mode", it.name)
                         },
-                        onOpenNowPlaying = { nowPlayingOpen = true },
+                        onOpenNowPlaying = { overlays.nowPlaying = true },
                         onVolumeChange = {
                             volume = it
                             persistence.saveString("volume", it.toString())
                         },
-                        onOpenQueue = { queueOpen = true },
+                        onOpenQueue = { overlays.queue = true },
                         accountAvatar = activeAccount?.avatar
                             ?: activeAccount?.profiles?.firstOrNull()?.avatar,
-                        onOpenAccounts = { DesktopTrackLog.log("accounts: opening the switcher"); accountsOpen = true },
+                        onOpenAccounts = { DesktopTrackLog.log("accounts: opening the switcher"); overlays.accounts = true },
                     )
                 },
                 sidebar = {
                     DesktopSidebar(
                         destination = destination,
-                        settingsOpen = settingsOpen,
+                        settingsOpen = overlays.settings,
                         query = query,
                         onQueryChange = { query = it },
                         onSearch = ::search,
                         onDestinationSelected = ::selectDestination,
-                        onOpenSettings = { settingsOpen = true },
+                        onOpenSettings = { overlays.settings = true },
                     )
                 },
                 bottomBar = { compact ->
@@ -1983,13 +1973,13 @@ fun BitChordDesktopApp() {
                         song = selectedSong,
                         isPlaying = playback.isPlaying,
                         onDestinationSelected = ::selectDestination,
-                        onExpand = { nowPlayingOpen = true },
+                        onExpand = { overlays.nowPlaying = true },
                         onPlayPause = { if (selectedSong != null) playbackEngine.togglePlayPause() },
                         onNext = ::playNext,
                     )
                 },
                 overlay = {
-                    if (nowPlayingOpen && selectedSong != null) {
+                    if (overlays.nowPlaying && selectedSong != null) {
                         val playerSong = selectedSong!!.let { current ->
                             val extra = trackLinks?.takeIf { it.videoId == current.videoId }
                                 ?: return@let current
@@ -2005,7 +1995,7 @@ fun BitChordDesktopApp() {
                             // credit collapses Android's sheet.
                             onOpenArtist = { song ->
                                 song.artistId?.let {
-                                    nowPlayingOpen = false
+                                    overlays.nowPlaying = false
                                     openArtist(it, song.artist)
                                 }
                             },
@@ -2030,11 +2020,11 @@ fun BitChordDesktopApp() {
                                 // Both leave the player, the way opening a page from Android's
                                 // sheet collapses it.
                                 onOpenAlbum = { id ->
-                                    nowPlayingOpen = false
+                                    overlays.nowPlaying = false
                                     openAlbum(id)
                                 },
                                 onOpenArtist = { id ->
-                                    nowPlayingOpen = false
+                                    overlays.nowPlaying = false
                                     openArtist(id, selectedSong!!.artist)
                                 },
                                 onSleepTimer = { minutes ->
@@ -2080,7 +2070,7 @@ fun BitChordDesktopApp() {
                             crossfadeSeconds = crossfadeSeconds,
                             onClose = {
                                 DesktopWindowMode.exit()
-                                nowPlayingOpen = false
+                                overlays.nowPlaying = false
                             },
                             onPlayPause = { playbackEngine.togglePlayPause() },
                             onRevertToOriginal = {
@@ -2130,7 +2120,7 @@ fun BitChordDesktopApp() {
                             },
                         )
                     }
-                    if (settingsOpen) {
+                    if (overlays.settings) {
                         DesktopSettingsDialog(
                             autoplay = autoplay,
                             onAutoplayChange = ::setAutoplay,
@@ -2169,7 +2159,7 @@ fun BitChordDesktopApp() {
                                 persistence.saveBoolean("animated_canvas", it)
                             },
                             spotifyCanvasReady = spotifyCanvasCookie.isNotBlank(),
-                            onOpenSpotifyCanvasSetup = { spotifyCanvasSetupOpen = true },
+                            onOpenSpotifyCanvasSetup = { overlays.spotifyCanvasSetup = true },
                             dontRepeatSuggestions = dontRepeatSuggestions,
                             onDontRepeatSuggestionsChange = {
                                 dontRepeatSuggestions = it
@@ -2201,9 +2191,9 @@ fun BitChordDesktopApp() {
                                 persistence.saveBoolean(DesktopLyricsClient.KEY_LYRICS_BLUR, it)
                             },
                             enabledLyricsSources = DesktopLyricsClient.enabledSources(lyricsOrder, lyricsOn),
-                            onOpenLyricsSources = { lyricsSourcesOpen = true },
-                            onOpenTranslationLanguage = { translationLanguageOpen = true },
-                            onOpenEqualizer = { equalizerOpen = true },
+                            onOpenLyricsSources = { overlays.lyricsSources = true },
+                            onOpenTranslationLanguage = { overlays.translationLanguage = true },
+                            onOpenEqualizer = { overlays.equalizer = true },
                             onShowNerdStatsChange = {
                                 showNerdStats = it
                                 persistence.saveBoolean("show_nerd_stats", it)
@@ -2310,11 +2300,11 @@ fun BitChordDesktopApp() {
                                     )
                                 }
                             },
-                            onOpenIntegrations = { integrationsOpen = true },
-                            onDismiss = { settingsOpen = false },
+                            onOpenIntegrations = { overlays.integrations = true },
+                            onDismiss = { overlays.settings = false },
                         )
                     }
-                    if (accountsOpen) {
+                    if (overlays.accounts) {
                         DesktopAccountSelector(
                             accounts = accounts,
                             activeAccountId = activeAccountId,
@@ -2325,7 +2315,7 @@ fun BitChordDesktopApp() {
                                 activeAccountId = account.accountId
                                 activeProfileId = profile.profileId
                             },
-                            onAddAccount = { accountsOpen = false; signInOpen = true },
+                            onAddAccount = { overlays.accounts = false; overlays.signIn = true },
                             onRemoveAccount = { account ->
                                 scope.launch {
                                     accounts = withContext(Dispatchers.IO) {
@@ -2336,12 +2326,12 @@ fun BitChordDesktopApp() {
                                     activeProfileId = DesktopAccounts.activeProfileId()
                                 }
                             },
-                            onOpenSettings = { accountsOpen = false; settingsOpen = true },
-                            onDismiss = { accountsOpen = false },
+                            onOpenSettings = { overlays.accounts = false; overlays.settings = true },
+                            onDismiss = { overlays.accounts = false },
                         )
                     }
 
-                    if (signInOpen) {
+                    if (overlays.signIn) {
                         DesktopSignInDialog(
                             busy = signInBusy,
                             error = signInError,
@@ -2366,10 +2356,10 @@ fun BitChordDesktopApp() {
                                     }
                                 }
                             },
-                            onDismiss = { signInOpen = false; signInError = null },
+                            onDismiss = { overlays.signIn = false; signInError = null },
                         )
                     }
-                    if (playlistDialogOpen || playlistTarget != null) {
+                    if (overlays.playlistDialog || playlistTarget != null) {
                         DesktopPlaylistDialog(
                             song = playlistTarget,
                             accountPlaylists = accountPlaylists,
@@ -2385,7 +2375,7 @@ fun BitChordDesktopApp() {
                             onDismiss = ::closePlaylistDialogs,
                         )
                     }
-                    if (renameOpen) {
+                    if (overlays.rename) {
                         DesktopRenamePlaylistDialog(
                             current = openedCollection?.title.orEmpty(),
                             busy = playlistBusy,
@@ -2394,7 +2384,7 @@ fun BitChordDesktopApp() {
                             onDismiss = ::closePlaylistDialogs,
                         )
                     }
-                    if (deleteOpen) {
+                    if (overlays.delete) {
                         DesktopDeletePlaylistDialog(
                             title = openedCollection?.title.orEmpty(),
                             busy = playlistBusy,
@@ -2403,22 +2393,22 @@ fun BitChordDesktopApp() {
                             onDismiss = ::closePlaylistDialogs,
                         )
                     }
-                    if (downloadManagerOpen) {
-                        DesktopDownloadManagerDialog(onDismiss = { downloadManagerOpen = false })
+                    if (overlays.downloadManager) {
+                        DesktopDownloadManagerDialog(onDismiss = { overlays.downloadManager = false })
                     }
-                    if (spotifyCanvasSetupOpen) {
+                    if (overlays.spotifyCanvasSetup) {
                         DesktopSpotifyCanvasDialog(
-                            onDismiss = { spotifyCanvasSetupOpen = false },
+                            onDismiss = { overlays.spotifyCanvasSetup = false },
                             onSaved = { spotifyCanvasCookie = it },
                         )
                     }
-                    if (equalizerOpen) {
-                        DesktopEqualizerDialog(onDismiss = { equalizerOpen = false })
+                    if (overlays.equalizer) {
+                        DesktopEqualizerDialog(onDismiss = { overlays.equalizer = false })
                     }
-                    if (translationLanguageOpen) {
-                        DesktopTranslationLanguageDialog(onDismiss = { translationLanguageOpen = false })
+                    if (overlays.translationLanguage) {
+                        DesktopTranslationLanguageDialog(onDismiss = { overlays.translationLanguage = false })
                     }
-                    if (lyricsSourcesOpen) {
+                    if (overlays.lyricsSources) {
                         DesktopLyricsSourcesDialog(
                             order = lyricsOrder,
                             enabled = lyricsOn,
@@ -2443,37 +2433,37 @@ fun BitChordDesktopApp() {
                                 persistence.saveLyricsEnabledSources(lyricsOn)
                                 persistence.saveBoolean(DesktopLyricsClient.KEY_PRIORITIZE_SYLLABLES, false)
                             },
-                            onDismiss = { lyricsSourcesOpen = false },
+                            onDismiss = { overlays.lyricsSources = false },
                         )
                     }
-                    if (integrationsOpen) {
+                    if (overlays.integrations) {
                         DesktopIntegrationsDialog(
                             song = playback.song,
-                            onOpenLastfm = { lastfmLoginOpen = true },
-                            onOpenListenBrainz = { listenBrainzTokenOpen = true },
-                            onOpenDiscordToken = { discordTokenOpen = true },
-                            onDismiss = { integrationsOpen = false },
+                            onOpenLastfm = { overlays.lastfmLogin = true },
+                            onOpenListenBrainz = { overlays.listenBrainzToken = true },
+                            onOpenDiscordToken = { overlays.discordToken = true },
+                            onDismiss = { overlays.integrations = false },
                         )
                     }
-                    if (lastfmLoginOpen) {
-                        DesktopLastfmLoginDialog(onDismiss = { lastfmLoginOpen = false })
+                    if (overlays.lastfmLogin) {
+                        DesktopLastfmLoginDialog(onDismiss = { overlays.lastfmLogin = false })
                     }
-                    if (listenBrainzTokenOpen) {
-                        DesktopListenBrainzTokenDialog(onDismiss = { listenBrainzTokenOpen = false })
+                    if (overlays.listenBrainzToken) {
+                        DesktopListenBrainzTokenDialog(onDismiss = { overlays.listenBrainzToken = false })
                     }
-                    if (discordTokenOpen) {
-                        DesktopDiscordTokenDialog(onDismiss = { discordTokenOpen = false })
+                    if (overlays.discordToken) {
+                        DesktopDiscordTokenDialog(onDismiss = { overlays.discordToken = false })
                     }
-                    if (queueOpen) {
+                    if (overlays.queue) {
                         DesktopQueueOverlay(
                             // The whole live queue, so history is visible above the needle the way
                             // the player's own list shows it.
                             queue = liveQueue.songs,
                             currentIndex = liveQueue.index,
-                            onDismiss = { queueOpen = false },
+                            onDismiss = { overlays.queue = false },
                             onSongClick = { at ->
                                 playQueueIndex(at)
-                                queueOpen = false
+                                overlays.queue = false
                             },
                         )
                     }
@@ -2481,12 +2471,12 @@ fun BitChordDesktopApp() {
             ) { contentPadding ->
                 Box(Modifier.fillMaxSize()) {
                     when {
-                        replayOpen -> DesktopReplayPage(
+                        overlays.replay -> DesktopReplayPage(
                             summary = replaySummary,
                             period = replayPeriod,
                             holder = replayHolder,
                             onPeriodChange = { replayPeriod = it },
-                            onBack = { replayOpen = false },
+                            onBack = { overlays.replay = false },
                             onPlaySong = { playSong(it) },
                             onOpenArtist = ::openArtistByName,
                             contentPadding = contentPadding,
@@ -2517,8 +2507,8 @@ fun BitChordDesktopApp() {
                             collection = openedCollection!!,
                             loadingMore = collectionLoadingMore,
                             onLoadMore = ::loadMoreCollectionSongs,
-                            onRename = { renameOpen = true }.takeIf { openedCollection?.owned == true },
-                            onDelete = { deleteOpen = true }.takeIf { openedCollection?.owned == true },
+                            onRename = { overlays.rename = true }.takeIf { openedCollection?.owned == true },
+                            onDelete = { overlays.delete = true }.takeIf { openedCollection?.owned == true },
                             onRemoveFromPlaylist = ::removeFromOpenPlaylist
                                 .takeIf { openedCollection?.owned == true },
                             likedIds = likedIds,
@@ -2627,10 +2617,10 @@ fun BitChordDesktopApp() {
                             cloud = libraryState,
                             playlists = playlists,
                             onOpenPlaylist = ::openPlaylist,
-                            onCreatePlaylist = { playlistDialogOpen = true },
-                            onOpenReplay = { replayOpen = true },
+                            onCreatePlaylist = { overlays.playlistDialog = true },
+                            onOpenReplay = { overlays.replay = true },
                             onShelfItemClick = ::openShelfItem,
-                            onSignIn = { accountsOpen = true },
+                            onSignIn = { overlays.accounts = true },
                             onRetryCloud = ::reloadLibrary,
                             shelfSort = shelfSort,
                             onShelfSortChange = {
@@ -2663,7 +2653,7 @@ fun BitChordDesktopApp() {
                                 DesktopActionButton(
                                     "Queue · ${downloadInProgress.size}",
                                     Icons.Rounded.Download,
-                                    onClick = { downloadManagerOpen = true },
+                                    onClick = { overlays.downloadManager = true },
                                     modifier = Modifier
                                         .align(Alignment.TopEnd)
                                         .padding(end = 28.dp, top = 28.dp),
@@ -2957,6 +2947,7 @@ private fun DesktopToolbarButton(
         Modifier
             .size(36.dp)
             .clip(CircleShape)
+            .desktopHoverWash()
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -3337,8 +3328,22 @@ private fun DesktopPageBackdrop(artworkUrl: String?) {
 
 /** The artwork's own colours under the player — see [DesktopArtworkMesh]. */
 @Composable
-private fun DesktopMeshBackdrop(url: String?) {
+private fun DesktopMeshBackdrop(url: String?, source: ImageBitmap? = null) {
+    // Motion artwork wins when it is playing: it is what is actually on screen, and it is usually a
+    // different shot from the still with a palette of its own.
+    if (source != null) {
+        val fromCanvas = remember(source) { DesktopArtworkMesh.of(source, seed = url.hashCode()) }
+        if (fromCanvas != null) {
+            MeshCanvas(fromCanvas)
+            return
+        }
+    }
     val mesh by produceState<ImageBitmap?>(initialValue = null, key1 = url) {
+        // Dropped before the next one is fetched. `produceState` restarts its producer when the key
+        // changes but keeps whatever it last published, so without this the previous track's colours
+        // stayed behind the new cover for as long as the fetch took — and if the fetch was slow that
+        // was the whole song, with a green backdrop behind a black-and-white sleeve.
+        value = null
         value = withContext(Dispatchers.IO) {
             DesktopArtworkCache.load(url.artworkAt(MESH_SOURCE_PX) ?: url)
                 ?.let { DesktopArtworkMesh.of(it, seed = url.hashCode()) }
@@ -3349,6 +3354,11 @@ private fun DesktopMeshBackdrop(url: String?) {
         Box(Modifier.fillMaxSize().background(DesktopBackground))
         return
     }
+    MeshCanvas(texture)
+}
+
+@Composable
+private fun MeshCanvas(texture: ImageBitmap) {
     Canvas(Modifier.fillMaxSize()) {
         // One draw, bilinear: the sampler interpolates the whole mesh.
         drawImage(
@@ -3726,7 +3736,7 @@ private fun DesktopSearchPage(
     }
 
     DesktopPageScaffold(contentPadding) {
-        Column(Modifier.fillMaxSize().padding(horizontal = 28.dp)) {
+        Column(Modifier.fillMaxSize().padding(horizontal = DesktopPageGutter)) {
             PageHeading(DesktopStrings["search", "Search"], DesktopStrings["d_find_anything_in_youtube_music", "Find anything in YouTube Music"], gutter = 0.dp)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 DesktopSearchField(
@@ -4382,7 +4392,7 @@ private fun DesktopHistoryPage(
 ) {
     DesktopPageScaffold(contentPadding) {
         LazyColumn(
-            contentPadding = pagePadding(start = 28.dp, end = 28.dp, bottom = 32.dp),
+            contentPadding = pagePadding(start = DesktopPageGutter, end = DesktopPageGutter, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             item { PageHeading(DesktopStrings["history", "History"], DesktopStrings["d_recently_played_on_this_computer", "Recently played on this computer"], gutter = 0.dp) }
@@ -4474,7 +4484,7 @@ private fun DesktopLocalMusicPage(
     }
     DesktopPageScaffold(contentPadding) {
         Column(
-            Modifier.fillMaxSize().padding(horizontal = 28.dp),
+            Modifier.fillMaxSize().padding(horizontal = DesktopPageGutter),
         ) {
             PageHeading(title, subtitle, gutter = 0.dp)
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -5603,7 +5613,7 @@ private fun DesktopCollectionPage(
     }.joinToString(" • ").uppercase()
     DesktopPageScaffold(contentPadding) {
         LazyColumn(
-            contentPadding = pagePadding(start = 28.dp, end = 28.dp, bottom = 32.dp),
+            contentPadding = pagePadding(start = DesktopPageGutter, end = DesktopPageGutter, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             item {
@@ -5941,7 +5951,11 @@ private fun DesktopNowPlayingPage(
         if (legacyMeshGradient) {
             DesktopBackdrop(rememberDesktopArtworkPalette(song.thumbnailUrl))
         } else {
-            DesktopMeshBackdrop(song.thumbnailUrl)
+            DesktopMeshBackdrop(
+                song.thumbnailUrl,
+                // A frame only exists while the clip is decoding, so its presence is the signal.
+                source = DesktopCanvasBackdrop.frameFor(canvas?.url),
+            )
         }
         if (maxWidth >= 760.dp && !docked) {
             DesktopWideNowPlayingLayout(
@@ -6512,6 +6526,8 @@ internal fun DesktopPlayerPillButton(
             .size(30.dp)
             .clip(CircleShape)
             .background(if (selected) Color.White else Color.Transparent)
+            // Only where it is not already filled: a wash over the white pill would dirty it.
+            .then(if (selected) Modifier else Modifier.desktopHoverWash())
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
         content = { content() },
@@ -6581,17 +6597,25 @@ private fun DesktopPlayerStage(
         // column, and the controls under it take the cap back for themselves.
         modifier.then(if (fullBleedArtwork) Modifier else Modifier.widthIn(max = 560.dp)),
         verticalArrangement = if (fullBleedArtwork) Arrangement.Top else Arrangement.Center,
-        // A cover that spans the whole player wants its controls under its middle, not hugging one
-        // edge with the other half of the window holding nothing.
-        horizontalAlignment = if (fullBleedArtwork) Alignment.CenterHorizontally else Alignment.Start,
+        // Centred whichever cover is in use. Left-aligned, the contained sleeve centred itself in
+        // the space it was given while the title, scrubber and transport stayed where the lyrics
+        // panel had pushed them — so closing the panel moved the cover to the middle of the window
+        // and left everything below it stranded down one side.
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(
+        BoxWithConstraints(
             Modifier
                 .fillMaxWidth()
                 // Full-screen cover art takes every pixel the controls under it do not need.
                 .weight(1f, fill = fullBleedArtwork),
             contentAlignment = Alignment.Center,
         ) {
+            // Square, and bounded by whichever of the three runs out first: the column's width, the
+            // height left over once the controls have taken theirs, and a ceiling so a maximised
+            // window does not turn the sleeve into a poster. Sized rather than aspect-ratioed
+            // because a ratio honours one constraint and ignores the other — capped by width it
+            // left dead space above and below, and freed it grew down over the controls.
+            val sleeve = minOf(maxWidth, maxHeight, SLEEVE_MAX)
             Box(
                 Modifier
                     // Full-screen cover art fills the region it was given and crops to it; a phone
@@ -6600,7 +6624,7 @@ private fun DesktopPlayerStage(
                         if (fullBleedArtwork) {
                             Modifier.fillMaxSize()
                         } else {
-                            Modifier.widthIn(max = 410.dp).fillMaxWidth().aspectRatio(1f)
+                            Modifier.size(sleeve)
                         },
                     )
                     // Dragging the sleeve skips, and the sleeve follows the pointer so the gesture
@@ -7175,6 +7199,9 @@ private const val HERO_EDGE_FADE_FRACTION = 0.14f
 private val HERO_FADE_MAX = 240.dp
 private val HERO_EDGE_FADE_MAX = 110.dp
 
+/** How large a contained sleeve is allowed to get, however much room the window has. */
+private val SLEEVE_MAX = 460.dp
+
 /** How wide the controls under a full-bleed cover may grow. */
 private val HERO_CONTROLS_MAX = 780.dp
 
@@ -7468,7 +7495,7 @@ private fun DesktopShelf(
     shelf: HomeShelf,
     hero: Boolean,
     onItemClick: (ShelfItem) -> Unit,
-    gutter: Dp = 28.dp,
+    gutter: Dp = DesktopPageGutter,
 ) {
     Column {
         SectionTitle(shelf.title, shelf.subtitle, gutter)
@@ -7491,7 +7518,7 @@ private fun DesktopShelf(
  */
 @Composable
 internal fun DesktopScrollableRow(
-    gutter: Dp = 28.dp,
+    gutter: Dp = DesktopPageGutter,
     spacing: Dp = 14.dp,
     content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit,
 ) {
@@ -7583,8 +7610,15 @@ internal fun BoxScope.DesktopShelfArrow(
 @Composable
 private fun DesktopShelfCard(item: ShelfItem, hero: Boolean, onClick: (ShelfItem) -> Unit) {
     val width = if (hero) 270.dp else 158.dp
-    Column(Modifier.width(width).clickable { onClick(item) }) {
-        val shape = RoundedCornerShape(if (hero) 16.dp else 10.dp)
+    val shape = RoundedCornerShape(if (hero) 16.dp else 10.dp)
+    Column(
+        Modifier
+            .width(width)
+            // The whole card answers the pointer, artwork and captions together, so the two do not
+            // move independently of each other.
+            .desktopHoverLift(shape)
+            .clickable { onClick(item) },
+    ) {
         Box(
             Modifier
                 .size(width, if (hero) 205.dp else 158.dp)
@@ -7801,7 +7835,7 @@ private fun pagePadding(
 )
 
 @Composable
-private fun PageHeading(title: String, subtitle: String, gutter: Dp = 28.dp) {
+private fun PageHeading(title: String, subtitle: String, gutter: Dp = DesktopPageGutter) {
     Column(Modifier.padding(horizontal = gutter, vertical = 24.dp)) {
         Text(title, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
         Text(subtitle, color = DesktopSecondary, style = MaterialTheme.typography.titleMedium)
@@ -7809,7 +7843,7 @@ private fun PageHeading(title: String, subtitle: String, gutter: Dp = 28.dp) {
 }
 
 @Composable
-private fun SectionTitle(title: String, subtitle: String = "", gutter: Dp = 28.dp) {
+private fun SectionTitle(title: String, subtitle: String = "", gutter: Dp = DesktopPageGutter) {
     Column(Modifier.padding(horizontal = gutter)) {
         Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         if (subtitle.isNotBlank()) Text(subtitle, color = DesktopSecondary, style = MaterialTheme.typography.bodyMedium)

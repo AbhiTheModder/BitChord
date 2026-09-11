@@ -736,7 +736,8 @@ private const val CHART_LENGTH = 5
 
 private const val ROW_ART_PX = 120
 private const val MESH_SOURCE_PX = 120
-private val GUTTER = 38.dp
+/** The page margin, shared with every other page — see [DesktopPageGutter]. */
+private val GUTTER = DesktopPageGutter
 private val CardShape = RoundedCornerShape(20.dp)
 
 /** 85.6mm × 54mm, which is what makes the shape read as a card. */

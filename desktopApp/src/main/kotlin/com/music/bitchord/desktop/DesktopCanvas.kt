@@ -2,6 +2,7 @@ package com.music.bitchord.desktop
 
 import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -248,44 +249,67 @@ fun DesktopCanvasView(
 
     LaunchedEffect(url, fallbackUrl, isPlaying) {
         if (!isPlaying) return@LaunchedEffect
-        val decoder = DesktopCanvasDecoder()
-        val opened = withContext(Dispatchers.IO) {
-            var last: Result<Unit> = Result.failure(IllegalStateException("the clip could not be fetched"))
-            for (candidate in listOfNotNull(url, fallbackUrl)) {
-                // A manifest names its segments relative to the host it came from, so saving the
-                // playlist to disk and opening that leaves FFmpeg with nothing it can resolve.
-                // Apple's motion artwork is HLS, which is how "could not open the clip" happened.
-                val source = if (isManifest(candidate)) {
-                    candidate
-                } else {
-                    DesktopCanvasCache.fileFor(candidate)?.toAbsolutePath()?.toString() ?: continue
+        // Round and round until the track ends or the player is closed. A canvas is a few seconds
+        // long, so one pass through it is not the feature — and the decoder cannot be relied on to
+        // rewind itself: its own seek does not take on an HLS manifest, which is what Apple serves,
+        // and the clip then stopped dead on its last frame for the rest of the song.
+        while (isActive) {
+            val decoder = DesktopCanvasDecoder()
+            val opened = withContext(Dispatchers.IO) {
+                var last: Result<Unit> = Result.failure(IllegalStateException("the clip could not be fetched"))
+                for (candidate in listOfNotNull(url, fallbackUrl)) {
+                    // A manifest names its segments relative to the host it came from, so saving the
+                    // playlist to disk and opening that leaves FFmpeg with nothing it can resolve.
+                    // Apple's motion artwork is HLS, which is how "could not open the clip" happened.
+                    val source = if (isManifest(candidate)) {
+                        candidate
+                    } else {
+                        DesktopCanvasCache.fileFor(candidate)?.toAbsolutePath()?.toString() ?: continue
+                    }
+                    last = decoder.open(source)
+                    if (last.isSuccess) break
                 }
-                last = decoder.open(source)
-                if (last.isSuccess) break
+                last
             }
-            last
-        }
-        if (opened.isFailure) {
-            DesktopTrackLog.log("canvas: ${opened.exceptionOrNull()?.message}")
-            withContext(Dispatchers.IO) { decoder.close() }
-            return@LaunchedEffect
-        }
-        try {
-            val pixels = ByteArray(decoder.width * decoder.height * 4)
-            val info = ImageInfo.makeN32(decoder.width, decoder.height, ColorAlphaType.OPAQUE)
-            while (isActive) {
-                val started = System.currentTimeMillis()
-                val decoded = withContext(Dispatchers.IO) { decoder.nextFrame(pixels) }
-                if (!decoded) break
-                // `pixels` is handed to Skia rather than copied into it, so the array cannot be the
-                // one the decoder writes the next frame into.
-                frame = Image.makeRaster(info, pixels.copyOf(), decoder.width * 4).toComposeImageBitmap()
-                val spent = System.currentTimeMillis() - started
-                delay((decoder.frameIntervalMillis - spent).coerceAtLeast(0L))
+            if (opened.isFailure) {
+                DesktopTrackLog.log("canvas: ${opened.exceptionOrNull()?.message}")
+                withContext(Dispatchers.IO) { decoder.close() }
+                return@LaunchedEffect
             }
-        } finally {
-            withContext(NonCancellable + Dispatchers.IO) { decoder.close() }
+            var shown = 0
+            try {
+                val pixels = ByteArray(decoder.width * decoder.height * 4)
+                val info = ImageInfo.makeN32(decoder.width, decoder.height, ColorAlphaType.OPAQUE)
+                while (isActive) {
+                    val started = System.currentTimeMillis()
+                    val decoded = withContext(Dispatchers.IO) { decoder.nextFrame(pixels) }
+                    if (!decoded) break
+                    shown++
+                    // `pixels` is handed to Skia rather than copied into it, so the array cannot be
+                    // the one the decoder writes the next frame into.
+                    val next = Image.makeRaster(info, pixels.copyOf(), decoder.width * 4).toComposeImageBitmap()
+                    frame = next
+                    // The backdrop reads the first frame and holds it: re-meshing every frame would
+                    // be a full resample twenty-five times a second for a wash nobody is watching
+                    // closely, and the clip's palette does not change much across it anyway.
+                    if (shown == 1) DesktopCanvasBackdrop.publish(url, next)
+                    val spent = System.currentTimeMillis() - started
+                    delay((decoder.frameIntervalMillis - spent).coerceAtLeast(0L))
+                }
+            } finally {
+                withContext(NonCancellable + Dispatchers.IO) { decoder.close() }
+            }
+            // A pass that drew nothing would spin: reopening cannot fix a clip that has no frames
+            // in it, and retrying immediately is a busy loop over the network.
+            if (shown == 0) {
+                DesktopTrackLog.log("canvas: the clip decoded no frames; not looping it")
+                return@LaunchedEffect
+            }
         }
+    }
+
+    DisposableEffect(url) {
+        onDispose { DesktopCanvasBackdrop.clear(url) }
     }
 
     // Nothing at all until the first frame: a placeholder here would flash between the still cover

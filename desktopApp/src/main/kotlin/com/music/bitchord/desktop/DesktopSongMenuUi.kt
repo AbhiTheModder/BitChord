@@ -315,6 +315,9 @@ private fun DesktopMenuSurface(onDismiss: () -> Unit, content: @Composable () ->
 
 /** Where a menu hangs relative to the button that opened it. */
 private class DesktopMenuPosition : PopupPositionProvider {
+
+    private var above: Boolean? = null
+
     override fun calculatePosition(
         anchorBounds: IntRect,
         windowSize: IntSize,
@@ -324,9 +327,13 @@ private class DesktopMenuPosition : PopupPositionProvider {
         val margin = MENU_MARGIN
         val below = anchorBounds.bottom + margin
         val above = anchorBounds.top - popupContentSize.height - margin
+        val fitsBelow = below + popupContentSize.height + margin <= windowSize.height
+        val fitsAbove = above >= margin
+        val placeAbove = this.above ?: (!fitsBelow && fitsAbove)
+        if (this.above == null) this.above = placeAbove
         val y = when {
-            below + popupContentSize.height + margin <= windowSize.height -> below
-            above >= margin -> above
+            placeAbove && fitsAbove -> above
+            fitsBelow -> below
             // Neither side has room, so it is as tall as the window allows and sits between the
             // margins.
             else -> margin
