@@ -1,3 +1,4 @@
+import java.util.concurrent.TimeUnit
 import java.util.zip.ZipFile
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -134,6 +135,26 @@ val crossBuildingForWindows = targetOs == "windows" && !hostIsWindows
  * current shell does — it fails with a bare "No such file or directory" while
  * `cmake --version` works fine in the terminal beside it.
  */
+/**
+ * Whether a tool on the PATH can actually be started.
+ *
+ * A PATH entry can be a wrapper script whose own interpreter is gone; it is a file, it is
+ * executable, and it fails only at exec time — which surfaces as a build failure rather than as the
+ * missing-tool path this build already handles.
+ */
+fun runs(tool: File): Boolean = runCatching {
+    val process = ProcessBuilder(tool.absolutePath, "--version")
+        .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+        .redirectError(ProcessBuilder.Redirect.DISCARD)
+        .start()
+    if (!process.waitFor(10, TimeUnit.SECONDS)) {
+        process.destroyForcibly()
+        false
+    } else {
+        process.exitValue() == 0
+    }
+}.getOrDefault(false)
+
 fun findOnPath(tool: String): File? {
     // Windows keeps the extension on the file and off the command line, so a bare name matches
     // nothing on disk: PATHEXT is the list a shell would have tried.
@@ -151,7 +172,7 @@ fun findOnPath(tool: String): File? {
         .filter(String::isNotBlank)
         .flatMap { directory -> names.map { File(directory, it) } }
         // A PATHEXT match is executable by definition, and Windows' own canExecute is unreliable.
-        .firstOrNull { it.isFile && (hostIsWindows || it.canExecute()) }
+        .firstOrNull { it.isFile && (hostIsWindows || it.canExecute()) && runs(it) }
 }
 
 fun cmakeBinary(): String = findOnPath("cmake")?.absolutePath ?: "cmake"
@@ -163,14 +184,14 @@ val buildAnalysisNative by tasks.registering {
     val toolchain = project.file("native/mingw-w64.cmake")
     inputs.dir(rootProject.file("native/analyzer"))
     inputs.dir(rootProject.file("app/src/main/cpp/jni"))
-    inputs.file(project.file("native/CMakeLists.txt"))
+    inputs.dir(project.file("native"))
     inputs.property("target", targetOs)
     outputs.dir(outputDir)
     onlyIf {
         val cmake = findOnPath("cmake")
         if (cmake == null) {
             logger.lifecycle(
-                "cmake not found — building without the Automix analyser. If cmake is installed, " +
+                "no usable cmake — building without the Automix analyser. If cmake is installed, " +
                     "a Gradle daemon started before it was on PATH may be in use: ./gradlew --stop",
             )
         }

@@ -97,5 +97,5 @@ if(MSVC)
         target_include_directories(bitchord_smtc PRIVATE ${JNI_INCLUDE_DIRS})
     endif()
     # The WinRT umbrella import library.
-    target_link_libraries(bitchord_smtc PRIVATE windowsapp)
+    target_link_libraries(bitchord_smtc PRIVATE windowsapp gdi32)
 endif()

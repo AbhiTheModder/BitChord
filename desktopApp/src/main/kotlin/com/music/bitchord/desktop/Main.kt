@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import bitchord.desktopapp.generated.resources.Res
@@ -47,6 +48,14 @@ fun main() = application {
                 // process alive exactly as it did before.
                 close = { if (DesktopWindowVisibility.onCloseRequest()) exitApplication() },
             )
+        }
+        // The clipping region is a fixed shape, so it is re-applied on every resize, and dropped
+        // while the window fills the screen. Re-asked whenever the window is shown again too: one
+        // restored from the tray is a new handle as far as the compositor is concerned.
+        LaunchedEffect(state) {
+            snapshotFlow { Triple(visible, state.size, state.placement) }.collect { (shown, _, where) ->
+                if (shown) DesktopWindowCorners.update("BitChord", where == WindowPlacement.Floating)
+            }
         }
         CompositionLocalProvider(
             LocalDesktopWindowActions provides actions,
