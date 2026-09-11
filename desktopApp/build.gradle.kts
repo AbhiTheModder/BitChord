@@ -324,14 +324,21 @@ val composeMainClass = "com.music.bitchord.desktop.MainKt"
 compose.desktop {
     application {
         mainClass = composeMainClass
-        // Reaches the packaged launcher as well as `run`, which is why the version travels this way
-        // rather than through a generated source file.
+        jvmArgs("-Xmx512m")
+        jvmArgs("-XX:+UseG1GC", "-XX:G1PeriodicGCInterval=20000", "-XX:G1PeriodicGCSystemLoadThreshold=0")
         jvmArgs("-Dbitchord.version=$appVersion")
         if (desktopModuleIndexUrl.isNotBlank()) {
             jvmArgs("-Dbitchord.module.index=$desktopModuleIndexUrl")
         }
         if (lastfmApiKey.isNotBlank() && lastfmSecret.isNotBlank()) {
             jvmArgs("-Dbitchord.lastfm.key=$lastfmApiKey", "-Dbitchord.lastfm.secret=$lastfmSecret")
+        }
+
+        buildTypes.release.proguard {
+            isEnabled.set(false)
+            obfuscate.set(false)
+            optimize.set(false)
+            configurationFiles.from(project.file("packaging/proguard-rules.pro"))
         }
 
         nativeDistributions {
@@ -347,7 +354,25 @@ compose.desktop {
             vendor = "BitChord contributors"
             copyright = "Copyright © 2026 BitChord contributors"
 
-            includeAllModules = true
+            modules(
+                "java.base",
+                "java.desktop",
+                "java.instrument",
+                "java.logging",
+                "java.management",
+                "java.naming",
+                "java.net.http",
+                "java.prefs",
+                "java.scripting",
+                "java.sql",
+                "java.xml",
+                "jdk.crypto.ec",
+                "jdk.dynalink",
+                "jdk.localedata",
+                "jdk.security.auth",
+                "jdk.unsupported",
+                "jdk.zipfs",
+            )
 
             linux {
                 iconFile.set(project.file("packaging/icons/AppIcon.png"))
@@ -367,4 +392,5 @@ compose.desktop {
             }
         }
     }
+
 }

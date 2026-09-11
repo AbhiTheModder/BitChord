@@ -17,23 +17,43 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.graphics.decodeToImageBitmap
 import java.net.URI
-import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * Decoded artwork, kept to a budget.
+ *
+ * It used to be an unbounded map. Every distinct URL a session ever loaded stayed decoded for the
+ * life of the process, so browsing Explore and Search for a while was hundreds of megabytes of
+ * bitmaps nothing would ever ask for again — which is where the gigabyte people reported was going.
+ */
 internal object DesktopArtworkCache {
-    private val images = ConcurrentHashMap<String, ImageBitmap>()
+
+    /**
+     * A sixth of the heap, within reason.
+     *
+     * Derived rather than fixed so the budget still makes sense against whatever `-Xmx` the
+     * launcher was given, and clamped at both ends so a small heap still caches something and a
+     * large one does not decide it may hold half a gigabyte of thumbnails.
+     */
+    internal val budgetBytes: Long =
+        (Runtime.getRuntime().maxMemory() / 6).coerceIn(32L * 1024 * 1024, 128L * 1024 * 1024)
+
+    /** Four bytes a pixel, which is what every format here decodes to. */
+    private val images = DesktopByteBudgetLru<ImageBitmap>(budgetBytes) {
+        it.width.toLong() * it.height.toLong() * 4L
+    }
 
     /** Everything held, dropped — what the Storage settings' "Clear image cache" does. */
     fun clear() = images.clear()
 
     suspend fun load(url: String?): ImageBitmap? {
         if (url.isNullOrBlank()) return null
-        images[url]?.let { return it }
+        images.get(url)?.let { return it }
         return runCatching {
             URI(url).toURL().openConnection().apply {
                 connectTimeout = 10_000
                 readTimeout = 10_000
             }.getInputStream().use { stream -> stream.readBytes().decodeToImageBitmap() }
-        }.getOrNull()?.also { images[url] = it }
+        }.getOrNull()?.also { images.put(url, it) }
     }
 }
 
