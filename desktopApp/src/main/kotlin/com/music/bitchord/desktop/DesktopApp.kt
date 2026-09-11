@@ -533,11 +533,13 @@ fun BitChordDesktopApp() {
     var lyricsOrder by remember { mutableStateOf(persistence.lyricsSourceOrder()) }
     var lyricsOn by remember { mutableStateOf(persistence.lyricsEnabledSources()) }
     var lyricsSourcesOpen by remember { mutableStateOf(false) }
+    var translationLanguageOpen by remember { mutableStateOf(false) }
+    var equalizerOpen by remember { mutableStateOf(false) }
     var lastfmLoginOpen by remember { mutableStateOf(false) }
     var listenBrainzTokenOpen by remember { mutableStateOf(false) }
     var discordTokenOpen by remember { mutableStateOf(false) }
     var integrationsOpen by remember { mutableStateOf(false) }
-    var fullBleedArtwork by remember { mutableStateOf(persistence.boolean("full_bleed_artwork", true)) }
+    var fullBleedArtwork by remember { mutableStateOf(persistence.boolean("full_bleed_artwork", false)) }
     var accounts by remember { mutableStateOf(DesktopAccounts.accounts()) }
     var activeAccountId by remember { mutableStateOf(DesktopAccounts.activeAccountId()) }
     var activeProfileId by remember { mutableStateOf(DesktopAccounts.activeProfileId()) }
@@ -1105,6 +1107,19 @@ fun BitChordDesktopApp() {
     LaunchedEffect(audioQuality) { playbackEngine.setAudioQuality(audioQuality.name) }
     LaunchedEffect(automixPerformance) {
         playbackEngine.setAutomixPerformance(automixPerformance)
+    }
+    // Every one of the seven settings renders the same curve, so they are collected together
+    // rather than destructured — seven sources of one tuning is seven chances to read them in the
+    // wrong order.
+    val eqEnabled by DesktopEqualizerSettings.enabled.collectAsState()
+    val eqMode by DesktopEqualizerSettings.mode.collectAsState()
+    val eqToneX by DesktopEqualizerSettings.toneX.collectAsState()
+    val eqToneY by DesktopEqualizerSettings.toneY.collectAsState()
+    val eqFocused by DesktopEqualizerSettings.focused.collectAsState()
+    val eqBalance by DesktopEqualizerSettings.balance.collectAsState()
+    val eqBands by DesktopEqualizerSettings.bands.collectAsState()
+    LaunchedEffect(eqEnabled, eqMode, eqToneX, eqToneY, eqFocused, eqBalance, eqBands) {
+        playbackEngine.setEqualizer(eqEnabled, DesktopEqualizerSettings.curve(), eqBalance)
     }
     LaunchedEffect(spatialAudio, skipSilence, outputPrecision) {
         playbackEngine.setSpatialAudio(spatialAudio)
@@ -2187,6 +2202,8 @@ fun BitChordDesktopApp() {
                             },
                             enabledLyricsSources = DesktopLyricsClient.enabledSources(lyricsOrder, lyricsOn),
                             onOpenLyricsSources = { lyricsSourcesOpen = true },
+                            onOpenTranslationLanguage = { translationLanguageOpen = true },
+                            onOpenEqualizer = { equalizerOpen = true },
                             onShowNerdStatsChange = {
                                 showNerdStats = it
                                 persistence.saveBoolean("show_nerd_stats", it)
@@ -2394,6 +2411,12 @@ fun BitChordDesktopApp() {
                             onDismiss = { spotifyCanvasSetupOpen = false },
                             onSaved = { spotifyCanvasCookie = it },
                         )
+                    }
+                    if (equalizerOpen) {
+                        DesktopEqualizerDialog(onDismiss = { equalizerOpen = false })
+                    }
+                    if (translationLanguageOpen) {
+                        DesktopTranslationLanguageDialog(onDismiss = { translationLanguageOpen = false })
                     }
                     if (lyricsSourcesOpen) {
                         DesktopLyricsSourcesDialog(
@@ -3165,7 +3188,7 @@ private fun DesktopMiniPlayer(
 }
 
 @Composable
-private fun DesktopSearchField(
+internal fun DesktopSearchField(
     query: String,
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
@@ -3704,7 +3727,7 @@ private fun DesktopSearchPage(
 
     DesktopPageScaffold(contentPadding) {
         Column(Modifier.fillMaxSize().padding(horizontal = 28.dp)) {
-            PageHeading(DesktopStrings["search", "Search"], DesktopStrings["d_find_anything_in_youtube_music", "Find anything in YouTube Music"])
+            PageHeading(DesktopStrings["search", "Search"], DesktopStrings["d_find_anything_in_youtube_music", "Find anything in YouTube Music"], gutter = 0.dp)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 DesktopSearchField(
                     query = query,
@@ -4362,7 +4385,7 @@ private fun DesktopHistoryPage(
             contentPadding = pagePadding(start = 28.dp, end = 28.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            item { PageHeading(DesktopStrings["history", "History"], DesktopStrings["d_recently_played_on_this_computer", "Recently played on this computer"]) }
+            item { PageHeading(DesktopStrings["history", "History"], DesktopStrings["d_recently_played_on_this_computer", "Recently played on this computer"], gutter = 0.dp) }
             if (history.isEmpty()) item { DesktopEmptyPage(Icons.Rounded.History, "Nothing played yet", "Songs you play will show up here.") }
             else items(history, key = Song::videoId) {
                 DesktopSongRow(
@@ -4453,7 +4476,7 @@ private fun DesktopLocalMusicPage(
         Column(
             Modifier.fillMaxSize().padding(horizontal = 28.dp),
         ) {
-            PageHeading(title, subtitle)
+            PageHeading(title, subtitle, gutter = 0.dp)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 DesktopSearchField(
                     query = searchQuery,
@@ -4645,6 +4668,8 @@ private fun DesktopSettingsDialog(
     /** The sources that will actually be asked, in the order they are asked. */
     enabledLyricsSources: List<String>,
     onOpenLyricsSources: () -> Unit,
+    onOpenTranslationLanguage: () -> Unit,
+    onOpenEqualizer: () -> Unit,
     showNerdStats: Boolean,
     onShowNerdStatsChange: (Boolean) -> Unit,
     fullBleedArtwork: Boolean,
@@ -4857,6 +4882,16 @@ private fun DesktopSettingsDialog(
                         legacyMeshGradient,
                         onLegacyMeshGradientChange,
                     )
+                    val eqOn by DesktopEqualizerSettings.enabled.collectAsState()
+                    SettingsNavigationRow(
+                        title = DesktopStrings["equalizer", "Equalizer"],
+                        subtitle = if (eqOn) {
+                            DesktopStrings["equalizer_subtitle", "Tone, seven bands and balance"]
+                        } else {
+                            DesktopStrings["d_off", "Off"]
+                        },
+                        onClick = onOpenEqualizer,
+                    )
                     SettingsToggle(
                         DesktopStrings["spatial_audio", "Spatial audio"],
                         DesktopStrings["spatial_audio_subtitle", "Widens stereo tracks for a more immersive feel"],
@@ -4910,12 +4945,11 @@ private fun DesktopSettingsDialog(
                                 .ifEmpty { "None. Lyrics will not be fetched." },
                             onClick = onOpenLyricsSources,
                         )
-                        val showLyricsLogs by DesktopAppearanceSettings.showLyricsLogs.collectAsState()
-                        SettingsToggle(
-                            DesktopStrings["d_lyrics_debug_logs", "Lyrics Debug Logs"],
-                            DesktopStrings["d_show_live_api_queries_and_scraper_activity_in_the_lyrics", "Show live API queries and scraper activity in the lyrics panel"],
-                            showLyricsLogs,
-                            DesktopAppearanceSettings::setShowLyricsLogs,
+                        val translationLanguage by DesktopTranslationSetting.language.collectAsState()
+                        SettingsNavigationRow(
+                            title = DesktopStrings["translation_language", "Translation language"],
+                            subtitle = DesktopTranslationSetting.describe(translationLanguage),
+                            onClick = onOpenTranslationLanguage,
                         )
                     }
                 }
@@ -6342,6 +6376,7 @@ private fun DesktopWideNowPlayingLayout(
                             isPlaying = isPlaying,
                             blurUnfocused = lyricsBlur,
                             onSeek = onSeek,
+                            trackId = song.videoId,
                         )
                         else -> DesktopPlayerQueuePanel(
                             upcoming = upcoming,
@@ -6452,7 +6487,7 @@ private fun Song.isNowPlaying(): Boolean = isSameTrackAs(LocalNowPlaying.current
 
 /** The rounded translucent capsule the player's floating controls sit in. */
 @Composable
-private fun DesktopPlayerPill(
+internal fun DesktopPlayerPill(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
@@ -6467,7 +6502,7 @@ private fun DesktopPlayerPill(
 }
 
 @Composable
-private fun DesktopPlayerPillButton(
+internal fun DesktopPlayerPillButton(
     onClick: () -> Unit,
     selected: Boolean = false,
     content: @Composable () -> Unit,
@@ -6607,8 +6642,9 @@ private fun DesktopPlayerStage(
                     }
                 }
                 // Inside the sleeve's own clip, so it takes the corners and the artwork behind it
-                // rather than sitting in the chrome below.
-                if (showNerdStats) {
+                // rather than sitting in the chrome below. Only where the cover dissolves into the
+                // page — on a contained sleeve it would be text laid over the picture.
+                if (showNerdStats && fullBleedArtwork) {
                     DesktopSleeveStats(
                         format = streamFormat,
                         automix = automix,
@@ -6638,7 +6674,17 @@ private fun DesktopPlayerStage(
             // Whether there is room to spend on the controls themselves.
             val roomy = maxWidth >= HERO_ROOMY_CONTROLS
             Column(Modifier.fillMaxWidth().padding(contentPadding)) {
-                Spacer(Modifier.height(if (fullBleedArtwork) 26.dp else 46.dp))
+                Spacer(Modifier.height(if (fullBleedArtwork) 26.dp else 18.dp))
+                if (showNerdStats && !fullBleedArtwork) {
+                    DesktopSleeveStats(
+                        format = streamFormat,
+                        automix = automix,
+                        smartAnalysis = smartAnalysis,
+                        isVideo = song.isVideo,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(10.dp))
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         var titleOverflowing by remember(song.videoId) { mutableStateOf(false) }
@@ -6761,7 +6807,10 @@ private fun DesktopPlayerStage(
                     Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                    Box(
+                        Modifier.weight(1f).offset(x = -CONTROL_GLYPH_INSET),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
                         IconButton(onClick = { onShuffleChange(!shuffle) }) {
                             Icon(
                                 Icons.Rounded.Shuffle,
@@ -6793,7 +6842,7 @@ private fun DesktopPlayerStage(
                         }
                     }
                     Row(
-                        Modifier.weight(1f),
+                        Modifier.weight(1f).offset(x = CONTROL_GLYPH_INSET),
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -7111,6 +7160,10 @@ private val DolbyAtmosMark: ImageVector by lazy {
         )
     }.build()
 }
+
+/** What an IconButton puts between its 48dp target and a 21dp glyph, and so how far the outer
+ *  controls have to move to line up with the scrubber above them. */
+private val CONTROL_GLYPH_INSET = 13.5.dp
 
 /** How much of a full-bleed cover's height is spent dissolving into the page below it. */
 private const val HERO_FADE_FRACTION = 0.42f
@@ -7748,8 +7801,8 @@ private fun pagePadding(
 )
 
 @Composable
-private fun PageHeading(title: String, subtitle: String) {
-    Column(Modifier.padding(horizontal = 28.dp, vertical = 24.dp)) {
+private fun PageHeading(title: String, subtitle: String, gutter: Dp = 28.dp) {
+    Column(Modifier.padding(horizontal = gutter, vertical = 24.dp)) {
         Text(title, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
         Text(subtitle, color = DesktopSecondary, style = MaterialTheme.typography.titleMedium)
     }

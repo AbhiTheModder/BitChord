@@ -42,10 +42,12 @@ StartupWMClass=com-music-bitchord-desktop-MainKt
 DESKTOP
 
 # appimagetool reads the icon by the desktop entry; the desktop reads .DirIcon.
-cp "$ROOT/Logo.png" "$APPDIR/bitchord.png"
-cp "$ROOT/Logo.png" "$APPDIR/.DirIcon"
+cp "$ROOT/desktopApp/packaging/icons/AppIcon.png" "$APPDIR/bitchord.png"
+cp "$ROOT/desktopApp/packaging/icons/AppIcon.png" "$APPDIR/.DirIcon"
 
 mkdir -p "$(dirname "$OUT")"
-# --appimage-extract-and-run: no FUSE on CI runners.
-ARCH=x86_64 "$TOOL" --appimage-extract-and-run "$APPDIR" "$OUT"
+# APPIMAGE_EXTRACT_AND_RUN rather than the flag of the same name: it is read by the AppImage
+# runtime, so it covers a CI runner with no FUSE, and a natively built appimagetool — which has
+# no such flag and would refuse to start — simply ignores it.
+ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 "$TOOL" "$APPDIR" "$OUT"
 echo "appimage: $OUT"

@@ -14,7 +14,6 @@
     <string name="d_bitchord_youtube_music_session">BitChord — sessione YouTube Music</string>
     <string name="d_blur_unfocused_lyrics">Sfoca il testo non attivo</string>
     <string name="d_choose_something_to_play">Scegli qualcosa da ascoltare</string>
-    <string name="d_clear_logs">Cancella i log</string>
     <string name="d_close_player">Chiudi il player</string>
     <string name="d_close_up_next">Chiudi In coda</string>
     <string name="d_closing_the_window_leaves_bitchord_in_the_tray_instead_o">Chiudendo la finestra BitChord resta nell\'area di notifica invece di uscire</string>
@@ -35,8 +34,6 @@
     <string name="d_looking_for_browsers">Ricerca dei browser…</string>
     <string name="d_lyrics_aren_t_available_for_this_song">Il testo non è disponibile per questo brano</string>
     <string name="d_lyrics_available_click_to_view">Testo disponibile • Fai clic per vederlo</string>
-    <string name="d_lyrics_debug_logs">Log di debug dei testi</string>
-    <string name="d_lyrics_logs">Log dei testi</string>
     <string name="d_lyrics_unavailable">Testo non disponibile</string>
     <string name="d_mix_the_order_of_the_current_queue">Mescola l\'ordine della coda attuale</string>
     <string name="d_module_source">Sorgente dei moduli</string>
@@ -46,7 +43,6 @@
     <string name="d_new_music_moods_and_discoveries">Nuova musica, atmosfere e scoperte</string>
     <string name="d_no_browser_profile_was_found_on_this_machine">Nessun profilo browser trovato su questo computer.</string>
     <string name="d_no_downloads">Nessun download</string>
-    <string name="d_no_logs_yet_play_a_song_to_see_api_calls_and_scraper_act">Ancora nessun log: riproduci un brano per vedere le chiamate API e l\'attività dello scraper.</string>
     <string name="d_nobody_is_signed_in">Nessuno ha effettuato l\'accesso. La tua libreria, le playlist e la cronologia richiedono una account YouTube Music.</string>
     <string name="d_open_listenbrainz">Apri ListenBrainz</string>
     <string name="d_open_spotify">Apri Spotify</string>
@@ -65,7 +61,6 @@
     <string name="d_search_your_music">Cerca nella tua musica</string>
     <string name="d_shorten_long_gaps_rather_than_playing_them_out">Accorcia le pause lunghe invece di riprodurle per intero</string>
     <string name="d_show_bitchord_in_the_system_tray_with_playback_controls">Mostra BitChord nell\'area di notifica, con i comandi di riproduzione</string>
-    <string name="d_show_live_api_queries_and_scraper_activity_in_the_lyrics">Mostra le chiamate API e l\'attività dello scraper nel pannello dei testi</string>
     <string name="d_show_motion_artwork_when_it_is_available">Mostra la copertina animata quando è disponibile</string>
     <string name="d_sign_in_to_last_fm">Accedi a Last.fm</string>
     <string name="d_song">BRANO</string>
@@ -86,4 +81,12 @@
     <string name="d_your_music_made_personal">La tua musica, su misura</string>
     <string name="d_your_queue_is_empty">La tua coda è vuota.</string>
     <string name="cancel_download">Annulla download</string>
+    <string name="d_already_in_that_language">È già in quella lingua</string>
+    <string name="d_filter_languages">Filtra le lingue</string>
+    <string name="d_follow_the_app_language">Segui la lingua dell\'app</string>
+    <string name="d_show_original">Originale</string>
+    <string name="d_translating">Traduzione in corso</string>
+    <string name="d_translation_unavailable">Traduzione non disponibile</string>
+    <string name="d_what_the_translate_button_translates_into">In quale lingua traduce il pulsante Traduci del testo</string>
+    <string name="d_off">Disattivato</string>
 </resources>

@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -83,7 +85,18 @@ internal fun DesktopLyricsSourcesDialog(
                 modifier = Modifier.padding(top = 5.dp),
             )
         }
-        ReorderableSourceList(order, enabled, onReorder, onToggle)
+        // Scrolls: enough providers have been added that the card runs off both ends of a short
+        // window, taking Reset and Done with it. A plain Column inside, not a lazy list — the
+        // drag-reorder measures itself against the rows it has, and a lazy list would recycle one
+        // out from under the pointer.
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(max = 340.dp)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            ReorderableSourceList(order, enabled, onReorder, onToggle)
+        }
         DesktopCardRule()
         // Not a source to ask or not: a rule about what to do once one has answered.
         CheckableRow(

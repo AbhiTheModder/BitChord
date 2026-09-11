@@ -310,6 +310,17 @@ object DesktopSearchClient {
 
     internal fun parseSearch(root: JsonObject, filter: SearchFilter): List<SearchResult> {
         val seen = HashSet<String>()
+        // The rows tucked inside an artist's promoted card, paired with the credit that card bills
+        // them to. Matched by identity below, because these are the same renderer objects the walk
+        // further down already finds; a card row is just a row that also sits here.
+        val cardCredits: List<Pair<JsonObject, CardCredit>> = if (filter == SearchFilter.VIDEOS) {
+            emptyList()
+        } else {
+            collectRenderers(root, "musicCardShelfRenderer").flatMap { card ->
+                val credit = cardShelfCredit(card) ?: return@flatMap emptyList()
+                collectRenderers(card, "musicResponsiveListItemRenderer").map { it to credit }
+            }
+        }
         return buildList {
             collectRenderers(root, "musicCardShelfRenderer")
                 .mapNotNull(::parseCardShelfSong)
@@ -333,7 +344,8 @@ object DesktopSearchClient {
                     }
                     return@forEach
                 }
-                parseSong(renderer)?.let { song ->
+                val card = cardCredits.firstOrNull { it.first === renderer }?.second
+                parseSong(renderer, card?.name, card?.artistId)?.let { song ->
                     val shouldInclude = when (filter) {
                         SearchFilter.VIDEOS -> song.isVideo
                         SearchFilter.ALBUMS, SearchFilter.ARTISTS, SearchFilter.PLAYLISTS -> false
@@ -445,7 +457,38 @@ object DesktopSearchClient {
             .mapNotNull(::parseSong)
             .distinctBy(Song::videoId)
 
-    private fun parseSong(root: JsonElement, fallbackArtist: String? = null): Song? {
+    /** Who the rows inside a promoted card are by — see [cardShelfCredit]. */
+    private data class CardCredit(val name: String, val artistId: String?)
+
+    /**
+     * Who the rows inside a promoted card are by, or null if the card isn't one that bills them.
+     *
+     * An artist card is a header with a track list under it: searching "mc stan" promotes the artist
+     * and hangs three of their songs off the card, and those rows say only "Song • 3:16", so a row
+     * read on its own came back as "Unknown Artist".
+     *
+     * Only artist cards, which is why this reads `onTap` rather than the subtitle. A song or video
+     * card's rows are *related* uploads rather than its own, so lending them the card's credit would
+     * put the wrong name on rows that were not missing one.
+     */
+    private fun cardShelfCredit(card: JsonObject): CardCredit? {
+        val renderer = card["musicCardShelfRenderer"]?.jsonObject ?: card
+        val endpoint = renderer["onTap"]?.jsonObject?.get("browseEndpoint")?.jsonObject ?: return null
+        val pageType = endpoint["browseEndpointContextSupportedConfigs"]?.jsonObject
+            ?.get("browseEndpointContextMusicConfig")?.jsonObject
+            ?.get("pageType")?.jsonPrimitive?.contentOrNull.orEmpty()
+        if ("ARTIST" !in pageType) return null
+        val name = renderer["title"].textValue().trim().takeIf { it.isNotBlank() } ?: return null
+        // Deliberately no album: the card says who the song is by and nothing about which release it
+        // came off, and a guess there would show up as a wrong "Open album" in the row's own menu.
+        return CardCredit(name, endpoint["browseId"]?.jsonPrimitive?.contentOrNull)
+    }
+
+    private fun parseSong(
+        root: JsonElement,
+        fallbackArtist: String? = null,
+        fallbackArtistId: String? = null,
+    ): Song? {
         val renderer = when (root) {
             is JsonObject -> root["musicResponsiveListItemRenderer"]?.jsonObject ?: root
             else -> return null
@@ -485,7 +528,7 @@ object DesktopSearchClient {
             artist = artist,
             thumbnailUrl = findThumbnailUrl(renderer),
             durationText = duration,
-            artistId = credits.artistId,
+            artistId = credits.artistId ?: fallbackArtistId,
             albumId = credits.albumId,
             albumName = credits.albumName,
             setVideoId = renderer["playlistItemData"]?.jsonObject

@@ -14,7 +14,6 @@
     <string name="d_bitchord_youtube_music_session">BitChord — sesi YouTube Music</string>
     <string name="d_blur_unfocused_lyrics">Buramkan lirik yang tidak difokuskan</string>
     <string name="d_choose_something_to_play">Pilih sesuatu untuk diputar</string>
-    <string name="d_clear_logs">Hapus log</string>
     <string name="d_close_player">Tutup pemutar</string>
     <string name="d_close_up_next">Tutup Berikutnya</string>
     <string name="d_closing_the_window_leaves_bitchord_in_the_tray_instead_o">Menutup jendela membuat BitChord tetap di baki, bukan keluar</string>
@@ -35,8 +34,6 @@
     <string name="d_looking_for_browsers">Mencari peramban…</string>
     <string name="d_lyrics_aren_t_available_for_this_song">Lirik tidak tersedia untuk lagu ini</string>
     <string name="d_lyrics_available_click_to_view">Lirik tersedia • Klik untuk melihat</string>
-    <string name="d_lyrics_debug_logs">Log debug lirik</string>
-    <string name="d_lyrics_logs">Log lirik</string>
     <string name="d_lyrics_unavailable">Lirik tidak tersedia</string>
     <string name="d_mix_the_order_of_the_current_queue">Acak urutan antrean saat ini</string>
     <string name="d_module_source">Sumber modul</string>
@@ -46,7 +43,6 @@
     <string name="d_new_music_moods_and_discoveries">Musik baru, suasana, dan penemuan</string>
     <string name="d_no_browser_profile_was_found_on_this_machine">Tidak ada profil peramban yang ditemukan di mesin ini.</string>
     <string name="d_no_downloads">Tidak ada unduhan</string>
-    <string name="d_no_logs_yet_play_a_song_to_see_api_calls_and_scraper_act">Belum ada log — putar sebuah lagu untuk melihat panggilan API dan aktivitas scraper.</string>
     <string name="d_nobody_is_signed_in">Belum ada yang masuk. Pustaka, playlist, dan riwayatmu memerlukan akun YouTube Music.</string>
     <string name="d_open_listenbrainz">Buka ListenBrainz</string>
     <string name="d_open_spotify">Buka Spotify</string>
@@ -65,7 +61,6 @@
     <string name="d_search_your_music">Cari musikmu</string>
     <string name="d_shorten_long_gaps_rather_than_playing_them_out">Persingkat jeda panjang alih-alih memutarnya penuh</string>
     <string name="d_show_bitchord_in_the_system_tray_with_playback_controls">Tampilkan BitChord di baki sistem, dengan kontrol pemutaran</string>
-    <string name="d_show_live_api_queries_and_scraper_activity_in_the_lyrics">Tampilkan kueri API langsung dan aktivitas scraper di panel lirik</string>
     <string name="d_show_motion_artwork_when_it_is_available">Tampilkan sampul bergerak bila tersedia</string>
     <string name="d_sign_in_to_last_fm">Masuk ke Last.fm</string>
     <string name="d_song">LAGU</string>
@@ -86,4 +81,12 @@
     <string name="d_your_music_made_personal">Musikmu, dibuat personal</string>
     <string name="d_your_queue_is_empty">Antreanmu kosong.</string>
     <string name="cancel_download">Batalkan unduhan</string>
+    <string name="d_already_in_that_language">Sudah dalam bahasa itu</string>
+    <string name="d_filter_languages">Saring bahasa</string>
+    <string name="d_follow_the_app_language">Ikuti bahasa aplikasi</string>
+    <string name="d_show_original">Asli</string>
+    <string name="d_translating">Menerjemahkan</string>
+    <string name="d_translation_unavailable">Terjemahan tidak tersedia</string>
+    <string name="d_what_the_translate_button_translates_into">Bahasa tujuan tombol terjemahkan pada lirik</string>
+    <string name="d_off">Mati</string>
 </resources>

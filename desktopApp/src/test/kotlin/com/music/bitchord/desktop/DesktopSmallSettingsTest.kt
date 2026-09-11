@@ -90,35 +90,4 @@ class DesktopSmallSettingsTest {
         }
     }
 
-    // ── Lyrics log ────────────────────────────────────────────────────────
-
-    @Test
-    fun `the lyrics log keeps the newest entries and no more`() {
-        DesktopLyricsLog.clear()
-        repeat(200) { DesktopLyricsLog.i("lrclib", "line $it") }
-        val entries = DesktopLyricsLog.entries.value
-        assertEquals(120, entries.size)
-        assertEquals("line 199", entries.last().message)
-        DesktopLyricsLog.clear()
-        assertTrue(DesktopLyricsLog.entries.value.isEmpty())
-    }
-
-    @Test
-    fun `each level is recorded as itself`() {
-        DesktopLyricsLog.clear()
-        DesktopLyricsLog.i("repository", "looking")
-        DesktopLyricsLog.s("lrclib", "found")
-        DesktopLyricsLog.w("genius", "missed")
-        DesktopLyricsLog.e("kugou", "failed")
-        assertEquals(
-            listOf(
-                DesktopLyricsLog.Level.INFO,
-                DesktopLyricsLog.Level.SUCCESS,
-                DesktopLyricsLog.Level.WARN,
-                DesktopLyricsLog.Level.ERROR,
-            ),
-            DesktopLyricsLog.entries.value.map { it.level },
-        )
-        DesktopLyricsLog.clear()
-    }
 }

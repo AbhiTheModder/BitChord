@@ -350,7 +350,7 @@ compose.desktop {
             includeAllModules = true
 
             linux {
-                iconFile.set(project.file("../Logo.png"))
+                iconFile.set(project.file("packaging/icons/AppIcon.png"))
                 menuGroup = "Audio"
                 appCategory = "AudioVideo;Audio;Player"
                 debMaintainer = "85984486+AbhiTheModder@users.noreply.github.com"
@@ -358,7 +358,7 @@ compose.desktop {
             }
 
             windows {
-                iconFile.set(project.file("../Logo.ico"))
+                iconFile.set(project.file("packaging/icons/AppIcon.ico"))
                 upgradeUuid = "8f3c1d24-6a2b-4f5e-9c17-2b8d54e0a913"
                 menuGroup = "BitChord"
                 shortcut = true

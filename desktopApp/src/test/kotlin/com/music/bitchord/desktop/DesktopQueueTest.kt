@@ -161,6 +161,37 @@ class DesktopQueueTest {
         assertEquals(listOf("cur", "a", "b", "later"), restored.songs.map { it.videoId })
     }
 
+    /** The upcoming stretch of the queue as turning shuffle off leaves it. */
+    private fun restored(upcoming: List<String>, original: List<String>): List<String> =
+        DesktopQueue.restoreOrder(upcoming, original).map { upcoming[it] }
+
+    @Test
+    fun aQueueHoldingTheSameTrackTwiceKeepsBothCopies() {
+        assertEquals(
+            listOf("b", "b", "c"),
+            restored(upcoming = listOf("b", "c", "b"), original = listOf("a", "b", "b", "c")),
+        )
+    }
+
+    @Test
+    fun aTrackTheOldOrderNamesButTheQueueHasLostIsSkipped() {
+        assertEquals(
+            listOf("b", "d"),
+            restored(upcoming = listOf("d", "b"), original = listOf("a", "b", "c", "d")),
+        )
+    }
+
+    /**
+     * The queues this runs on are playlists, and a per-track linear search over one is quadratic —
+     * the shape that made shuffling a long queue hang. Ten thousand tracks is a fraction of a second
+     * here and minutes if that ever comes back.
+     */
+    @Test
+    fun aVeryLongQueueIsRestoredWithoutAPerTrackSearch() {
+        val original = (0 until 10_000).map { it.toString() }
+        assertEquals(original, restored(original.shuffled(), original))
+    }
+
     @Test
     fun aQueueStartedUnderShuffleLeadsWithThePickedTrack() {
         val queue = DesktopQueue.shuffledStartingAt(songs("a", "b", "c", "d"), startIndex = 2)

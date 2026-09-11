@@ -445,7 +445,6 @@ object DesktopLyricsClient {
         // already on disk is a round trip, and it is why a download showed nothing offline.
         embedded(song)?.let { lines ->
             val result = Result.success(DesktopLyrics("Downloaded", lines.withBackgroundVocals().withGaps()))
-            DesktopLyricsLog.s("embedded", "${lines.size} lines from the file itself")
             cache[cacheKey] = CachedLyrics(System.currentTimeMillis(), result)
             return result
         }
@@ -474,13 +473,6 @@ object DesktopLyricsClient {
             hit = hit,
         )
 
-        DesktopLyricsLog.clear()
-        DesktopLyricsLog.i(
-            "repository",
-            "looking up '${ask.title}' by '${ask.artist}'" +
-                (ask.isrc?.let { " (ISRC $it)" } ?: "") +
-                " across ${chain.joinToString { it.name }}",
-        )
         val result = coroutineScope {
             // Every source is asked at once, but the answers are read back **in the configured
             // order**, not in the order they arrive. Taking whoever replied first is what let a
@@ -497,15 +489,12 @@ object DesktopLyricsClient {
                     try {
                         provider.fetch(ask).also { lines ->
                             if (lines == null) {
-                                DesktopLyricsLog.w(provider.name, "no words for this recording")
                             } else {
-                                DesktopLyricsLog.s(provider.name, "${lines.size} lines")
                             }
                         }
                     } catch (_: CancellationException) {
                         throw CancellationException()
                     } catch (failure: Throwable) {
-                        DesktopLyricsLog.e(provider.name, failure.message ?: "the call failed")
                         null
                     }
                 }
@@ -516,25 +505,20 @@ object DesktopLyricsClient {
                 for ((provider, job) in requests) {
                     if (provider.name == GENIUS) {
                         if (lineSynced != null) {
-                            DesktopLyricsLog.i("repository", "skipping Genius: a synced source answered")
                             continue
                         }
-                        DesktopLyricsLog.w("repository", "every synced source missed; trying Genius")
                     }
                     val lines = runCatching { job.await() }.getOrNull() ?: continue
                     val result = DesktopLyrics(provider.name, lines.withBackgroundVocals().withGaps())
                     if (result.wordSynced) {
-                        DesktopLyricsLog.s(provider.name, "word-synced — taking it")
                         return@coroutineScope Result.success(result)
                     }
                     if (!prioritizeSyllables) {
-                        DesktopLyricsLog.s(provider.name, "line-synced — taking it")
                         return@coroutineScope Result.success(result)
                     }
                     if (lineSynced == null) lineSynced = result
                 }
                 lineSynced?.let(Result.Companion::success) ?: run {
-                    DesktopLyricsLog.w("repository", "no source had this one")
                     Result.failure(IllegalStateException("No lyrics were found"))
                 }
             } finally {

@@ -81,18 +81,18 @@ internal data class DesktopQueue(
         return copy(songs = songs.take(from) + own.shuffled() + mix.shuffled())
     }
 
-    /** Puts the upcoming tracks back in [originalOrder], by id. */
+    /**
+     * Puts the upcoming tracks back in [originalOrder], by id.
+     *
+     * Worked out against a map of the positions each id holds rather than by searching the queue
+     * once per entry: these queues are playlists, and a linear search per track is a million
+     * comparisons over a thousand tracks — on the frame that handles the click.
+     */
     fun inOrderOf(originalOrder: List<String>): DesktopQueue {
         val from = index + 1
         if (from >= songs.size) return this
-        val upcoming = songs.drop(from).toMutableList()
-        val restored = buildList {
-            originalOrder.forEach { id ->
-                val at = upcoming.indexOfFirst { it.videoId == id }
-                if (at >= 0) add(upcoming.removeAt(at))
-            }
-            addAll(upcoming)
-        }
+        val upcoming = songs.drop(from)
+        val restored = restoreOrder(upcoming.map(Song::videoId), originalOrder).map(upcoming::get)
         // Sections are preserved on the way back too.
         val (mix, own) = restored.partition { it.fromAutoplay }
         return copy(songs = songs.take(from) + own + mix)
@@ -125,6 +125,29 @@ internal data class DesktopQueue(
         fun restored(songs: List<Song>, index: Int): DesktopQueue {
             if (songs.isEmpty()) return DesktopQueue()
             return DesktopQueue(songs, index.coerceIn(songs.indices)).trimmed()
+        }
+
+        /**
+         * Where each of [upcoming] belongs once [original] is put back, as indices into [upcoming].
+         *
+         * Each track still queued goes back to where it stood in the old order. Whatever is left
+         * over was queued after the shuffle and was never part of that order, so it keeps its place
+         * at the end; a track named by [original] that has since been removed is skipped. A queue
+         * holding the same track twice hands its copies out in the order they stand in, which is
+         * what keeps both of them.
+         */
+        internal fun restoreOrder(upcoming: List<String>, original: List<String>): List<Int> {
+            val positions = HashMap<String, ArrayDeque<Int>>(upcoming.size)
+            upcoming.forEachIndexed { at, id -> positions.getOrPut(id) { ArrayDeque() }.addLast(at) }
+            val placed = BooleanArray(upcoming.size)
+            val out = ArrayList<Int>(upcoming.size)
+            for (id in original) {
+                val at = positions[id]?.removeFirstOrNull() ?: continue
+                placed[at] = true
+                out += at
+            }
+            for (at in upcoming.indices) if (!placed[at]) out += at
+            return out
         }
 
         internal fun historyTrimCount(currentIndex: Int): Int =

@@ -5,6 +5,7 @@ import com.music.bitchord.data.settings.AutomixPerformanceMode
 import com.music.bitchord.data.settings.SmartAnalysis
 import com.music.bitchord.data.settings.TrackAnalysisState
 import com.music.bitchord.data.settings.TransitionWindow
+import com.music.bitchord.playback.EqCurve
 import com.music.bitchord.playback.TransitionFilter
 import com.music.bitchord.playback.smart.CrossfadeMode
 import com.music.bitchord.playback.smart.TransitionPlan
@@ -385,6 +386,16 @@ class DesktopPlaybackEngine(
     /** One widener per side of a mix, because widening is a property of a track. */
     private var spatial: DesktopSpatialAudio? = null
     private var spatialIncoming: DesktopSpatialAudio? = null
+
+    /**
+     * One equaliser over each side of a mix, matching Android's per-player pair.
+     *
+     * Ahead of the transition filter for the reason Android's chain gives: the equaliser belongs to
+     * the listener and the whole session, while the filter belongs to one handoff and has to have
+     * the last word on it.
+     */
+    private var equalizer = DesktopEqualizer()
+    private var equalizerIncoming = DesktopEqualizer()
     private var silence: DesktopSilenceSkipper? = null
     private var baseFrames = 0L
     private var fadeRemaining = 0
@@ -451,8 +462,9 @@ class DesktopPlaybackEngine(
     /** Mixes the outgoing track with the one coming in, filtering each side. */
     private fun blend(track: Track, block: FloatArray, count: Int): Pair<FloatArray, Int> {
         val incoming = upcoming
-        // Widened first, whether or not a mix is running.
+        // Widened first, whether or not a mix is running, then equalised.
         widen(spatial, track, block, count)
+        equalise(equalizer, block, count)
         if (fadeRemaining <= 0 || incoming == null) return block to count
 
         if (mixed.size < count) mixed = FloatArray(count)
@@ -461,7 +473,10 @@ class DesktopPlaybackEngine(
         // What is mixed, not what was decoded: the loop below reads at most [count] of them, and
         // counting the surplus would have the incoming track appear further along than it sounds.
         incomingSamples += minOf(otherCount, count)
-        if (other != null) widen(spatialIncoming, incoming, other, otherCount)
+        if (other != null) {
+            widen(spatialIncoming, incoming, other, otherCount)
+            equalise(equalizerIncoming, other, otherCount)
+        }
         val channels = sink.format.channels.coerceAtLeast(1)
         val plan = activePlan
         val subBlock = TransitionFilter.GLIDE_FRAMES * channels
@@ -501,6 +516,12 @@ class DesktopPlaybackEngine(
         processor.process(samples, count)
     }
 
+    /** The listener's own tuning, applied to one side of the mix. */
+    private fun equalise(processor: DesktopEqualizer, samples: FloatArray, count: Int) {
+        processor.setTuning(equalizerEnabled, equalizerCurve, equalizerBalance)
+        processor.process(samples, count)
+    }
+
     private fun stretch(samples: FloatArray, count: Int): Pair<FloatArray, Int> {
         val processor = speedProcessor ?: return samples to count
         processor.speed = playbackSpeed
@@ -529,6 +550,15 @@ class DesktopPlaybackEngine(
         incomingFilter.open()
         current?.decoder?.close()
         current = incoming
+        // The equalisers swap with the tracks they belong to. The incoming one has been filtering
+        // this track for the whole crossfade, and its sections — a 60 Hz shelf above all — are
+        // ringing with that audio; handing the track over to the other one instead would hand it
+        // the outgoing track's history at the seam.
+        val promoted = equalizerIncoming
+        equalizerIncoming = equalizer
+        equalizer = promoted
+        // Whichever is now idle starts the next incoming track clean.
+        equalizerIncoming.reset()
         upcoming = null
         nextSong = null
         fadeRemaining = 0
@@ -595,6 +625,8 @@ class DesktopPlaybackEngine(
         speedProcessor = DesktopAudioSpeed(sink.format.channels, sink.format.sampleRate)
         spatial = DesktopSpatialAudio(sink.format.channels, sink.format.sampleRate)
         spatialIncoming = DesktopSpatialAudio(sink.format.channels, sink.format.sampleRate)
+        equalizer.configure(sink.format.channels, sink.format.sampleRate)
+        equalizerIncoming.configure(sink.format.channels, sink.format.sampleRate)
         silence = DesktopSilenceSkipper(sink.format.channels, sink.format.sampleRate)
             .apply { enabled = skipSilenceEnabled }
         outgoingFilter.configure(sink.format.channels, sink.format.sampleRate)
@@ -625,6 +657,8 @@ class DesktopPlaybackEngine(
         speedProcessor = DesktopAudioSpeed(sink.format.channels, sink.format.sampleRate)
         spatial = DesktopSpatialAudio(sink.format.channels, sink.format.sampleRate)
         spatialIncoming = DesktopSpatialAudio(sink.format.channels, sink.format.sampleRate)
+        equalizer.configure(sink.format.channels, sink.format.sampleRate)
+        equalizerIncoming.configure(sink.format.channels, sink.format.sampleRate)
         silence = DesktopSilenceSkipper(sink.format.channels, sink.format.sampleRate)
             .apply { enabled = skipSilenceEnabled }
         outgoingFilter.configure(sink.format.channels, sink.format.sampleRate)
@@ -656,6 +690,11 @@ class DesktopPlaybackEngine(
         speedProcessor?.reset()
         spatial?.reset()
         spatialIncoming?.reset()
+        // A seek is not a continuous signal, so the filters are cleared rather than left ringing
+        // with the audio from before it — a strong band otherwise rings that state out over the
+        // first moments of the new position.
+        equalizer.reset()
+        equalizerIncoming.reset()
         silence?.reset()
         baseFrames = sink.framesPlayed()
         seekOffsetUs = millis * 1_000
@@ -815,6 +854,12 @@ class DesktopPlaybackEngine(
 
     @Volatile private var preferFloat = false
     @Volatile private var spatialEnabled = false
+
+    @Volatile private var equalizerEnabled = false
+
+    @Volatile private var equalizerCurve: EqCurve = EqCurve.FLAT
+
+    @Volatile private var equalizerBalance = 0f
     @Volatile private var skipSilenceEnabled = false
     @Volatile private var automixPerformance = AutomixPerformanceMode.BALANCED
 
@@ -824,6 +869,18 @@ class DesktopPlaybackEngine(
     }
 
     /** Android's "Spatial audio". */
+    /**
+     * Aims the equaliser.
+     *
+     * The curve is rendered by the caller because working out the make-up attenuation walks the
+     * whole response ([EqCurve]), and the audio thread is the one place that must not do that.
+     */
+    fun setEqualizer(enabled: Boolean, curve: EqCurve, balance: Float) {
+        equalizerCurve = curve
+        equalizerBalance = balance.coerceIn(-1f, 1f)
+        equalizerEnabled = enabled
+    }
+
     fun setSpatialAudio(enabled: Boolean) {
         spatialEnabled = enabled
     }

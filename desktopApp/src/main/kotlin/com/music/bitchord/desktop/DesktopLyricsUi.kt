@@ -80,6 +80,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.material.icons.rounded.Translate
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlin.math.abs
@@ -94,35 +101,127 @@ internal fun DesktopLyricsPanel(
     isPlaying: Boolean,
     blurUnfocused: Boolean,
     onSeek: (Long) -> Unit,
+    trackId: String,
     modifier: Modifier = Modifier,
 ) {
-    val showLogs by DesktopAppearanceSettings.showLyricsLogs.collectAsState()
-    if (!showLogs) {
-        LyricsBody(lyrics, loading, error, progressMs, isPlaying, blurUnfocused, onSeek, modifier.fillMaxSize())
-        return
+    var translation by remember(trackId, lyrics) { mutableStateOf<DesktopLyrics?>(null) }
+    var showing by remember(trackId, lyrics) { mutableStateOf(false) }
+    var working by remember(trackId, lyrics) { mutableStateOf(false) }
+    var note by remember(trackId, lyrics) { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    // Said once and gone. A caption that stayed would sit over the lyrics for the rest of the song.
+    LaunchedEffect(note) {
+        if (note == null) return@LaunchedEffect
+        delay(NOTE_DURATION_MS)
+        note = null
     }
-    // Android replaces the lyrics with the console on a tap; a desktop panel is a standing column
-    // with the height for both, so it takes the console's own inline form underneath.
-    Column(modifier.fillMaxSize()) {
+
+    Box(modifier.fillMaxSize()) {
         LyricsBody(
-            lyrics,
+            (if (showing) translation else null) ?: lyrics,
             loading,
             error,
             progressMs,
             isPlaying,
             blurUnfocused,
             onSeek,
-            Modifier.fillMaxWidth().weight(1f),
+            Modifier.fillMaxSize(),
         )
-        DesktopLyricsLogConsole(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
-            maxHeight = LOG_CONSOLE_HEIGHT,
-        )
+        // Over the foot of the lyrics rather than in the controls: the bottom block is measured at
+        // its natural height, so a row of its own there came straight off the panel above and the
+        // lyrics lost a line.
+        if (lyrics != null && !loading) {
+            TranslateButton(
+                showing = showing,
+                working = working,
+                note = note,
+                // The same inset as the panel pills below, so the two stack in one line.
+                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = 14.dp),
+                onClick = {
+                    note = null
+                    when {
+                        showing -> showing = false
+                        translation != null -> showing = true
+                        working -> Unit
+                        else -> scope.launch {
+                            working = true
+                            val outcome = DesktopLyricsTranslation.translate(
+                                trackId = trackId,
+                                lines = lyrics.lines,
+                                targetLanguageTag = DesktopTranslationSetting.resolved(),
+                            )
+                            working = false
+                            when (outcome) {
+                                is DesktopLyricsTranslation.Result.Translated -> {
+                                    translation = lyrics.copy(lines = outcome.lines)
+                                    showing = true
+                                }
+                                is DesktopLyricsTranslation.Result.SameLanguage ->
+                                    note = DesktopStrings["d_already_in_that_language", "Already in that language"]
+                                DesktopLyricsTranslation.Result.Unavailable ->
+                                    note = DesktopStrings["d_translation_unavailable", "Translation unavailable"]
+                            }
+                        }
+                    }
+                },
+            )
+        }
     }
 }
 
-/** How much of the lyrics column the log console may take. */
-private const val LOG_CONSOLE_HEIGHT = 200
+/** How long a translate caption stays up. */
+private const val NOTE_DURATION_MS = 2_600L
+
+/**
+ * The translate toggle — the player's own pill, so it reads as part of the same chrome as the
+ * close, full-screen, lyrics and queue buttons rather than as a control from somewhere else.
+ *
+ * Icon-only for the same reason. What it has to say about a failed attempt is a caption that shows
+ * itself and goes, not a slab of text left standing over the lyrics.
+ */
+@Composable
+private fun TranslateButton(
+    showing: Boolean,
+    working: Boolean,
+    note: String?,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Column(modifier, horizontalAlignment = Alignment.End) {
+        AnimatedVisibility(note != null, enter = fadeIn(), exit = fadeOut()) {
+            DesktopPlayerPill(Modifier.padding(bottom = 6.dp)) {
+                Text(
+                    note.orEmpty(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White,
+                )
+            }
+        }
+        DesktopPlayerPill {
+            DesktopPlayerPillButton(onClick = onClick, selected = showing) {
+                if (working) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(15.dp),
+                        strokeWidth = 2.dp,
+                        color = Color.White,
+                    )
+                } else {
+                    Icon(
+                        Icons.Rounded.Translate,
+                        if (showing) {
+                            DesktopStrings["d_show_original", "Original"]
+                        } else {
+                            DesktopStrings["translate", "Translate"]
+                        },
+                        tint = if (showing) Color.Black else Color.White,
+                        modifier = Modifier.size(17.dp),
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun LyricsBody(
