@@ -1,14 +1,17 @@
 package com.music.bitchord.desktop
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.animateScrollBy
@@ -16,52 +19,53 @@ import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Translate
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.FloatState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableLongState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -69,27 +73,23 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.material.icons.rounded.Translate
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
+import com.music.bitchord.ui.icons.BitChordIcons
+import kotlin.math.abs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
-import kotlin.math.abs
+import kotlinx.coroutines.launch
 
 /** The player's lyrics, sung rather than listed. */
 @Composable
@@ -294,7 +294,7 @@ private fun SungLyricStrip(
             modifier = modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(vertical = 4.dp),
         ) {
             Icon(
-                Icons.Rounded.MusicNote,
+                BitChordIcons.MusicNote,
                 null,
                 tint = Color.White.copy(alpha = 0.85f),
                 modifier = Modifier.size(16.dp),
@@ -355,7 +355,7 @@ private fun SungLyricStrip(
             },
     ) {
         if (instrumental) {
-            Icon(Icons.Rounded.MusicNote, null, tint = Color.White, modifier = Modifier.size(16.dp))
+            Icon(BitChordIcons.MusicNote, null, tint = Color.White, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(6.dp))
         }
         val swept = current?.takeIf { !instrumental && it.isWordSynced }
@@ -387,7 +387,7 @@ private fun SungLyricStrip(
         // Says the strip leads somewhere, which is most of what makes it a way in to the panel
         // rather than a caption.
         Icon(
-            Icons.Rounded.ChevronRight,
+            BitChordIcons.ChevronRight,
             null,
             tint = Color.White.copy(alpha = 0.5f),
             modifier = Modifier.size(14.dp),
@@ -594,7 +594,7 @@ private fun LyricsList(
                 distance = if (scrollLine < 0) 0 else abs(index - scrollLine),
                 stagger = staggerFor(index, focusLine, run),
                 run = run,
-                since = since.floatValue,
+                since = since,
                 onSeek = onSeek,
             )
         }
@@ -683,7 +683,12 @@ private fun LyricRow(
     distance: Int,
     stagger: Float,
     run: LyricScrollRun,
-    since: Float,
+    /**
+     * How far into the panel's journey this frame is. A state rather than a value: it changes on
+     * every frame of the scroll, and is only ever wanted in the layer block below, so reading it
+     * here would recompose every visible row sixty times a second.
+     */
+    since: FloatState,
     onSeek: (Long) -> Unit,
 ) {
     // Symmetric either side of the playing line, and shallow.
@@ -764,9 +769,10 @@ private fun LyricRow(
             translationY = if (stagger <= 0f) {
                 0f
             } else {
+                val elapsed = since.floatValue
                 run.delta * (
-                    LYRIC_EASING.transform((since / run.durationMs).coerceIn(0f, 1f)) -
-                        LYRIC_EASING.transform(((since - stagger) / run.durationMs).coerceIn(0f, 1f))
+                    LYRIC_EASING.transform((elapsed / run.durationMs).coerceIn(0f, 1f)) -
+                        LYRIC_EASING.transform(((elapsed - stagger) / run.durationMs).coerceIn(0f, 1f))
                     )
             }
         }

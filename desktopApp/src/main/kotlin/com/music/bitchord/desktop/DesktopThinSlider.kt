@@ -68,7 +68,6 @@ internal fun DesktopThinSlider(
 
     Box(
         modifier = modifier
-            .fillMaxWidth()
             // Generous invisible hit target — the visible bar is only ~7dp.
             .height(activeHeight + 22.dp)
             // One gesture loop for both clicks and drags.

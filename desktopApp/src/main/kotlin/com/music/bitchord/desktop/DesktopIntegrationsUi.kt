@@ -235,7 +235,7 @@ private fun DialogHeading(title: String, message: String, isError: Boolean = fal
             message,
             modifier = Modifier.padding(top = 5.dp),
             style = MaterialTheme.typography.bodySmall,
-            color = if (isError) DesktopAccent else DesktopSecondary,
+            color = if (isError) DesktopDestructive else DesktopSecondary,
             textAlign = TextAlign.Center,
         )
     }

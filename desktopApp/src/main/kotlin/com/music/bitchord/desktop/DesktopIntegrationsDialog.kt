@@ -17,7 +17,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -40,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.music.bitchord.data.model.Song
+import com.music.bitchord.ui.icons.BitChordIcons
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -569,7 +569,7 @@ private fun PanelSwitchRow(
             }
         }
         Spacer(Modifier.width(10.dp))
-        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled, colors = desktopSwitchColors())
     }
 }
 
@@ -591,7 +591,7 @@ private fun PanelActionRow(title: String, subtitle: String, destructive: Boolean
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, color = if (destructive) DesktopAccent else Color.White)
+            Text(title, color = if (destructive) DesktopDestructive else Color.White)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = DesktopSecondary)
         }
     }
@@ -615,7 +615,7 @@ private fun PanelSliderRow(
             }
             Text(readout, color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
         }
-        Slider(
+        DesktopBareSlider(
             value = value,
             onValueChange = onValueChange,
             valueRange = range,
@@ -662,7 +662,7 @@ internal fun DesktopChoiceDialog(
                     Text(option.detail, style = MaterialTheme.typography.bodySmall, color = DesktopSecondary)
                 }
                 if (option.id == selected) {
-                    Icon(Icons.Rounded.Check, DesktopStrings["selected", "Selected"], tint = DesktopAccent, modifier = Modifier.size(18.dp))
+                    Icon(BitChordIcons.Check, DesktopStrings["selected", "Selected"], tint = DesktopAccent, modifier = Modifier.size(18.dp))
                 }
             }
         }

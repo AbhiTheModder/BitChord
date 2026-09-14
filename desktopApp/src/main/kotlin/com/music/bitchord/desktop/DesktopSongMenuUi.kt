@@ -3,9 +3,9 @@ package com.music.bitchord.desktop
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
-import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,12 +29,7 @@ import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Bedtime
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.CloudDownload
-import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.DownloadDone
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Radio
@@ -58,16 +53,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import com.music.bitchord.data.model.LikeStatus
 import com.music.bitchord.data.model.Song
+import com.music.bitchord.ui.icons.BitChordIcons
 
 /** The verbs the song menu needs that the player does not otherwise know about. */
 internal data class DesktopSongActions(
@@ -214,7 +210,7 @@ internal fun DesktopSongMenu(
 
         if (signedIn && !isOffline) {
             DesktopMenuRow(
-                icon = if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                icon = if (liked) BitChordIcons.HeartFilled else BitChordIcons.Heart,
                 label = if (liked) "Remove from liked" else "Like",
                 tint = if (liked) DesktopAccent else null,
                 onClick = onToggleLike,
@@ -236,7 +232,7 @@ internal fun DesktopSongMenu(
         // Only starting a new download needs a YouTube identity behind it.
         when {
             downloadInProgress -> DesktopMenuRow(
-                icon = Icons.Rounded.CloudDownload,
+                icon = BitChordIcons.Download,
                 label = DesktopStrings["cancel_download", "Cancel download"],
                 busy = true,
                 onClick = onDownload,
@@ -249,7 +245,7 @@ internal fun DesktopSongMenu(
                 onClick = onRemoveDownload,
             )
             !isOffline -> DesktopMenuRow(
-                icon = Icons.Rounded.CloudDownload,
+                icon = BitChordIcons.Download,
                 label = DesktopStrings["download", "Download"],
                 onClick = onDownload,
             )
@@ -430,7 +426,7 @@ private fun DesktopMenuRow(
         }
         if (selected) {
             Spacer(Modifier.width(8.dp))
-            Icon(Icons.Rounded.Check, null, tint = DesktopAccent, modifier = Modifier.size(15.dp))
+            Icon(BitChordIcons.Check, null, tint = DesktopAccent, modifier = Modifier.size(15.dp))
         }
     }
 }

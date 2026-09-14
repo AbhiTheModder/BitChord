@@ -1,158 +1,127 @@
 package com.music.bitchord.desktop
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.material3.SliderDefaults
-import androidx.compose.ui.draw.shadow
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.gestures.animateScrollBy
-import androidx.compose.foundation.hoverable
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
-import androidx.compose.material.icons.rounded.AccountCircle
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.NorthWest
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.RemoveCircleOutline
-import androidx.compose.material.icons.rounded.Headphones
-import androidx.compose.material.icons.rounded.ChevronLeft
-import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.unit.IntOffset
-import kotlin.math.abs
-import kotlin.system.exitProcess
-import kotlin.math.roundToInt
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
-import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.unit.IntSize
-import com.music.bitchord.data.model.artworkAt
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
+import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Album
-import androidx.compose.material.icons.rounded.AllInclusive
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ArrowForward
-import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Bedtime
-import androidx.compose.material.icons.rounded.CloudDownload
-import androidx.compose.material.icons.rounded.Cloud
-import androidx.compose.material.icons.rounded.Key
-import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Description
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.Explore
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Extension
-import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.FastForward
-import androidx.compose.material.icons.rounded.FullscreenExit
-import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.FastRewind
-import androidx.compose.material.icons.rounded.Lyrics
-import androidx.compose.material.icons.rounded.CompareArrows
-import androidx.compose.material.icons.rounded.RepeatOne
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.FavoriteBorder
-import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.LibraryMusic
-import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.Fullscreen
+import androidx.compose.material.icons.rounded.FullscreenExit
+import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Headphones
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.NorthWest
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.PlayCircle
-import androidx.compose.material.icons.rounded.QueueMusic
-import androidx.compose.material.icons.rounded.Repeat
-import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.RemoveCircleOutline
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Sort
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.VolumeUp
-import androidx.compose.material.icons.rounded.ViewList
-import androidx.compose.material.icons.rounded.ViewModule
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material.icons.rounded.Sort
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material.icons.rounded.DeleteSweep
-import androidx.compose.material.icons.rounded.Folder
-import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -163,113 +132,76 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.PathFillType
-import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.addPathNodes
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.HazeMaterials
-import com.music.bitchord.data.settings.AutomixPerformanceMode
-import com.music.bitchord.data.settings.SmartAnalysis
-import com.music.bitchord.data.settings.TrackAnalysisState
-import com.music.bitchord.data.settings.TransitionWindow
-import androidx.compose.foundation.Canvas
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.text.LinkAnnotation
-import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
-import com.music.bitchord.data.model.ArtistPage
-import com.music.bitchord.data.model.SubscriptionState
-import com.music.bitchord.data.model.BrowseItem
-import com.music.bitchord.data.model.BrowseType
-import com.music.bitchord.data.model.HomeShelf
-import com.music.bitchord.data.model.LibraryPage
-import com.music.bitchord.data.model.PlaylistPrivacy
-import com.music.bitchord.data.model.UserPlaylist
-import com.music.bitchord.data.model.LikeStatus
-import com.music.bitchord.data.model.MoodGenre
-import com.music.bitchord.data.model.MoodGenreSection
-import com.music.bitchord.data.model.SearchFilter
-import com.music.bitchord.data.model.SearchResult
-import com.music.bitchord.data.model.ShelfItem
-import com.music.bitchord.data.model.Song
-import com.music.bitchord.data.model.UiState
-import com.music.bitchord.data.model.durationMillis
-import com.music.bitchord.data.model.isSameTrackAs
-import com.music.bitchord.data.model.CARD_ART_PX
-import com.music.bitchord.data.model.HEADER_ART_PX
-import com.music.bitchord.data.model.PLAYER_ART_PX
-import com.music.bitchord.data.model.ROW_ART_PX
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.yield
 import bitchord.desktopapp.generated.resources.Res
 import bitchord.desktopapp.generated.resources.logo
 import bitchord.desktopapp.generated.resources.sf_pro_display_bold
@@ -277,9 +209,57 @@ import bitchord.desktopapp.generated.resources.sf_pro_display_heavy
 import bitchord.desktopapp.generated.resources.sf_pro_display_medium
 import bitchord.desktopapp.generated.resources.sf_pro_display_regular
 import bitchord.desktopapp.generated.resources.sf_pro_display_semibold
+import com.music.bitchord.data.model.ArtistPage
+import com.music.bitchord.data.model.BrowseItem
+import com.music.bitchord.data.model.BrowseType
+import com.music.bitchord.data.model.CARD_ART_PX
+import com.music.bitchord.data.model.HEADER_ART_PX
+import com.music.bitchord.data.model.HomeShelf
+import com.music.bitchord.data.model.LibraryPage
+import com.music.bitchord.data.model.LikeStatus
+import com.music.bitchord.data.model.MoodGenre
+import com.music.bitchord.data.model.MoodGenreSection
+import com.music.bitchord.data.model.PLAYER_ART_PX
+import com.music.bitchord.data.model.PlaylistPrivacy
+import com.music.bitchord.data.model.ROW_ART_PX
+import com.music.bitchord.data.model.SearchFilter
+import com.music.bitchord.data.model.SearchResult
+import com.music.bitchord.data.model.ShelfItem
+import com.music.bitchord.data.model.Song
+import com.music.bitchord.data.model.SubscriptionState
+import com.music.bitchord.data.model.UiState
+import com.music.bitchord.data.model.UserPlaylist
+import com.music.bitchord.data.model.artworkAt
+import com.music.bitchord.data.model.durationMillis
+import com.music.bitchord.data.model.isSameTrackAs
+import com.music.bitchord.data.settings.AutomixPerformanceMode
+import com.music.bitchord.data.settings.SmartAnalysis
+import com.music.bitchord.data.settings.TrackAnalysisState
+import com.music.bitchord.data.settings.TransitionWindow
+import com.music.bitchord.ui.icons.BitChordIcons
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.materials.HazeMaterials
+import java.util.UUID
+import kotlin.math.abs
+import kotlin.math.roundToInt
+import kotlin.system.exitProcess
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import org.jetbrains.compose.resources.Font as composeFont
 import org.jetbrains.compose.resources.painterResource
-import java.util.UUID
 
 /**
  * The margin every page keeps from the window's edge.
@@ -306,7 +286,30 @@ private val LocalDesktopBottomInset = staticCompositionLocalOf { 0.dp }
 
 /** Android's own edge on these bars: `Color.White.copy(alpha = 0.10f)`. */
 private val DesktopBarEdge = Color(0x1AFFFFFF)
-internal val DesktopAccent = Color(0xFFFA2D48)
+internal val DesktopAccent = Color.White
+
+/** Deleting, signing out, and anything that failed — the one place a colour survives, as on Android. */
+internal val DesktopDestructive = Color(0xFFFF453A)
+
+/** A chip the way Android draws a chosen segment: solid white with black on it, or nothing at all. */
+@Composable
+internal fun desktopChipColors() = FilterChipDefaults.filterChipColors(
+    containerColor = Color.Transparent,
+    labelColor = DesktopSecondary,
+    selectedContainerColor = Color.White,
+    selectedLabelColor = Color.Black,
+)
+
+/** Android's switch: a white track with a black knob on, a faint wash off. */
+@Composable
+internal fun desktopSwitchColors() = SwitchDefaults.colors(
+    checkedTrackColor = Color.White,
+    checkedThumbColor = Color.Black,
+    checkedBorderColor = Color.Transparent,
+    uncheckedTrackColor = Color.White.copy(alpha = 0.10f),
+    uncheckedThumbColor = Color.White.copy(alpha = 0.35f),
+    uncheckedBorderColor = Color.Transparent,
+)
 internal val DesktopSecondary = Color(0xFF8E8E93)
 internal val DesktopDivider = Color(0xFF2C2C2E)
 private const val STATS_SAMPLE_MS = 5_000L
@@ -1865,8 +1868,9 @@ fun BitChordDesktopApp() {
     MaterialTheme(
         colorScheme = darkColorScheme(
             primary = DesktopAccent,
-            onPrimary = Color.White,
-            primaryContainer = Color(0xFF5E172C),
+            // Black on the accent, now that the accent is white.
+            onPrimary = Color.Black,
+            primaryContainer = Color.White.copy(alpha = 0.16f),
             onPrimaryContainer = Color.White,
             background = DesktopBackground,
             onBackground = Color.White,
@@ -2652,7 +2656,7 @@ fun BitChordDesktopApp() {
                             if (downloadInProgress.isNotEmpty()) {
                                 DesktopActionButton(
                                     "Queue · ${downloadInProgress.size}",
-                                    Icons.Rounded.Download,
+                                    BitChordIcons.Download,
                                     onClick = { overlays.downloadManager = true },
                                     modifier = Modifier
                                         .align(Alignment.TopEnd)
@@ -2752,7 +2756,7 @@ private fun DesktopQueueOverlay(
                                         song.title,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
-                                        color = if (index == currentIndex) DesktopAccent else Color.White,
+                                        color = if (index == currentIndex) Color.White else Color.White.copy(alpha = 0.75f),
                                     )
                                     Text(
                                         song.artist,
@@ -2828,7 +2832,7 @@ private fun DesktopTopBar(
             // Transport and the now-playing pill belong to one player at a time.
             if (!compact) {
             DesktopToolbarButton(onClick = { onShuffleChange(!shuffle) }) {
-                Icon(Icons.Rounded.Shuffle, DesktopStrings["shuffle", "Shuffle"], tint = if (shuffle) DesktopAccent else DesktopSecondary)
+                Icon(BitChordIcons.Shuffle, DesktopStrings["shuffle", "Shuffle"], tint = if (shuffle) DesktopAccent else DesktopSecondary)
             }
             DesktopToolbarButton(onClick = onPrevious) {
                 Icon(Icons.Rounded.FastRewind, DesktopStrings["widget_previous", "Previous"], modifier = Modifier.size(20.dp))
@@ -2845,13 +2849,19 @@ private fun DesktopTopBar(
                 Icon(Icons.Rounded.FastForward, DesktopStrings["widget_next", "Next"], modifier = Modifier.size(20.dp))
             }
             DesktopToolbarButton(onClick = { onRepeatModeChange(repeatMode.next()) }) {
-                Icon(
-                    // Repeat-one says which mode is on rather than only that one is, the way the
-                    // player's own control does.
-                    if (repeatMode == DesktopRepeatMode.ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
-                    "Repeat ${repeatMode.label()}",
-                    tint = if (repeatMode != DesktopRepeatMode.OFF) DesktopAccent else DesktopSecondary,
-                )
+                val tint = if (repeatMode != DesktopRepeatMode.OFF) DesktopAccent else DesktopSecondary
+                // Repeat-one is a bold "1", the same way the player's control and Android say it.
+                if (repeatMode == DesktopRepeatMode.ONE) {
+                    Text(
+                        "1",
+                        color = tint,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.semantics { contentDescription = "Repeat one" },
+                    )
+                } else {
+                    Icon(BitChordIcons.Repeat, "Repeat ${repeatMode.label()}", tint = tint)
+                }
             }
             Row(
                 Modifier.weight(1f),
@@ -2874,7 +2884,7 @@ private fun DesktopTopBar(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Start,
                         ) {
-                            Icon(Icons.Rounded.MusicNote, DesktopStrings["playback_channel_name", "Now playing"], tint = DesktopSecondary, modifier = Modifier.size(22.dp))
+                            Icon(BitChordIcons.MusicNote, DesktopStrings["playback_channel_name", "Now playing"], tint = DesktopSecondary, modifier = Modifier.size(22.dp))
                             Spacer(Modifier.width(10.dp))
                             Text("BitChord", color = DesktopSecondary, style = MaterialTheme.typography.labelLarge)
                         }
@@ -2910,28 +2920,33 @@ private fun DesktopTopBar(
             // Without the pill taking the slack, the utilities would slide over and sit against the
             // wordmark.
             if (compact) Spacer(Modifier.weight(1f))
+            // With no title bar the window's own controls come last on this row, after everything
+            // the application owns.
+            val inlineCaption = DesktopPlatform.drawsOwnWindowFrame &&
+                !DesktopTitleBarSetting.enabled.collectAsState().value
             Row(
-                Modifier.width(280.dp),
+                Modifier.width(if (inlineCaption) 418.dp else 280.dp),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Rounded.VolumeUp, DesktopStrings["d_volume", "Volume"], tint = DesktopSecondary, modifier = Modifier.size(18.dp))
-                Slider(
+                DesktopThinSlider(
                     value = volume,
                     onValueChange = onVolumeChange,
-                    modifier = Modifier.width(92.dp).height(28.dp),
-                    colors = androidx.compose.material3.SliderDefaults.colors(
-                        activeTrackColor = DesktopSecondary,
-                        inactiveTrackColor = DesktopDivider,
-                        thumbColor = Color.White,
-                    ),
+                    idleHeight = 6.dp,
+                    activeHeight = 10.dp,
+                    modifier = Modifier.width(92.dp),
                 )
                 // No second button for the player here.
                 DesktopToolbarButton(onClick = onOpenQueue) {
-                    Icon(Icons.Rounded.QueueMusic, DesktopStrings["queue", "Queue"], tint = Color.White, modifier = Modifier.size(20.dp))
+                    Icon(BitChordIcons.Queue, DesktopStrings["queue", "Queue"], tint = Color.White, modifier = Modifier.size(20.dp))
                 }
                 // Last in the row, which is where an account lives on every desktop that has one.
                 DesktopAccountButton(avatar = accountAvatar, onClick = onOpenAccounts)
+                if (inlineCaption) {
+                    Spacer(Modifier.width(6.dp))
+                    DesktopWindowButtons()
+                }
             }
         }
     }
@@ -2999,33 +3014,33 @@ private fun DesktopSidebar(
         Spacer(Modifier.height(24.dp))
         Text(DesktopStrings["d_music", "MUSIC"], color = DesktopSecondary, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 12.dp))
         Spacer(Modifier.height(8.dp))
-        DesktopSidebarItem(Icons.Rounded.Home, "Listen Now", destination == DesktopDestination.LISTEN_NOW) {
+        DesktopSidebarItem(BitChordIcons.Play, "Listen Now", destination == DesktopDestination.LISTEN_NOW) {
             onDestinationSelected(DesktopDestination.LISTEN_NOW)
         }
-        DesktopSidebarItem(Icons.Rounded.Explore, "Explore", destination == DesktopDestination.EXPLORE) {
+        DesktopSidebarItem(BitChordIcons.Explore, "Explore", destination == DesktopDestination.EXPLORE) {
             onDestinationSelected(DesktopDestination.EXPLORE)
         }
-        DesktopSidebarItem(Icons.Rounded.LibraryMusic, "Library", destination == DesktopDestination.LIBRARY) {
+        DesktopSidebarItem(BitChordIcons.Library, "Library", destination == DesktopDestination.LIBRARY) {
             onDestinationSelected(DesktopDestination.LIBRARY)
         }
-        DesktopSidebarItem(Icons.Rounded.Search, "Search", destination == DesktopDestination.SEARCH) {
+        DesktopSidebarItem(BitChordIcons.Search, "Search", destination == DesktopDestination.SEARCH) {
             onDestinationSelected(DesktopDestination.SEARCH)
         }
         Spacer(Modifier.height(20.dp))
         Text(DesktopStrings["d_your_collection", "YOUR COLLECTION"], color = DesktopSecondary, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 12.dp))
         Spacer(Modifier.height(8.dp))
-        DesktopSidebarItem(Icons.Rounded.History, "History", destination == DesktopDestination.HISTORY) {
+        DesktopSidebarItem(BitChordIcons.Clock, "History", destination == DesktopDestination.HISTORY) {
             onDestinationSelected(DesktopDestination.HISTORY)
         }
         val queued by DesktopDownloadQueue.active.collectAsState()
         DesktopSidebarItem(
-            Icons.Rounded.Download,
+            BitChordIcons.Download,
             if (queued.isEmpty()) "Downloads" else "Downloads · ${queued.size}",
             destination == DesktopDestination.DOWNLOADS,
         ) {
             onDestinationSelected(DesktopDestination.DOWNLOADS)
         }
-        DesktopSidebarItem(Icons.Rounded.LibraryMusic, "Local Music", destination == DesktopDestination.LOCAL_MUSIC) {
+        DesktopSidebarItem(BitChordIcons.Library, "Local Music", destination == DesktopDestination.LOCAL_MUSIC) {
             onDestinationSelected(DesktopDestination.LOCAL_MUSIC)
         }
         Spacer(Modifier.weight(1f))
@@ -3102,10 +3117,10 @@ private fun DesktopFloatingNavigation(
     onDestinationSelected: (DesktopDestination) -> Unit,
 ) {
     val tabs = listOf(
-        DesktopDestination.LISTEN_NOW to (Icons.Rounded.Home to "Play"),
-        DesktopDestination.EXPLORE to (Icons.Rounded.Explore to "Explore"),
-        DesktopDestination.LIBRARY to (Icons.Rounded.LibraryMusic to "Library"),
-        DesktopDestination.SEARCH to (Icons.Rounded.Search to "Search"),
+        DesktopDestination.LISTEN_NOW to (BitChordIcons.Play to "Play"),
+        DesktopDestination.EXPLORE to (BitChordIcons.Explore to "Explore"),
+        DesktopDestination.LIBRARY to (BitChordIcons.Library to "Library"),
+        DesktopDestination.SEARCH to (BitChordIcons.Search to "Search"),
     )
     val selected = tabs.firstOrNull { it.first == destination }?.first ?: DesktopDestination.LIBRARY
     val shape = RoundedCornerShape(percent = 50)
@@ -3223,7 +3238,7 @@ internal fun DesktopSearchField(
             decorationBox = { innerTextField ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        Icons.Rounded.Search,
+                        BitChordIcons.Search,
                         contentDescription = null,
                         tint = DesktopSecondary,
                         modifier = Modifier.size(18.dp),
@@ -3468,7 +3483,7 @@ private fun DesktopHomePage(
                 ) {
                     item { PageHeading(DesktopStrings["listen_now", "Listen Now"], DesktopStrings["d_your_music_made_personal", "Your music, made personal"]) }
                     if (state.data.isEmpty()) {
-                        item { DesktopEmptyPage(Icons.Rounded.Home, "Your Listen Now feed is empty", "Search for an artist or song to get started.") }
+                        item { DesktopEmptyPage(BitChordIcons.Play, "Your Listen Now feed is empty", "Search for an artist or song to get started.") }
                     } else {
                         state.data.forEachIndexed { index, shelf ->
                             item(key = "home-${shelf.title}-$index") {
@@ -3523,7 +3538,7 @@ private fun DesktopExplorePage(
                 if (state.data.isEmpty()) {
                     item {
                         DesktopEmptyPage(
-                            Icons.Rounded.Explore,
+                            BitChordIcons.Explore,
                             "Nothing to explore yet",
                             "Try again when YouTube Music is reachable.",
                         )
@@ -3761,6 +3776,7 @@ private fun DesktopSearchPage(
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     SearchFilter.entries.forEach { option ->
                         FilterChip(
+                            colors = desktopChipColors(),
                             selected = filter == option,
                             onClick = { onFilterChange(option) },
                             label = { Text(option.label) },
@@ -3774,7 +3790,7 @@ private fun DesktopSearchPage(
                     itemsIndexed(suggestions, key = { _, term -> "suggestion:$term" }) { index, term ->
                         DesktopTermRow(
                             term = term,
-                            icon = Icons.Rounded.Search,
+                            icon = BitChordIcons.Search,
                             onClick = { onPickTerm(term) },
                             trailingIcon = Icons.Rounded.NorthWest,
                             trailingDescription = "Use this search",
@@ -3809,7 +3825,7 @@ private fun DesktopSearchPage(
                     items(history, key = { "recent:$it" }) { term ->
                         DesktopTermRow(
                             term = term,
-                            icon = Icons.Rounded.History,
+                            icon = BitChordIcons.Clock,
                             onClick = { onPickTerm(term) },
                             trailingIcon = Icons.Rounded.Close,
                             trailingDescription = "Forget $term",
@@ -3817,7 +3833,7 @@ private fun DesktopSearchPage(
                         )
                     }
                 }
-                rows.isEmpty() -> DesktopEmptyPage(Icons.Rounded.Search, "Search BitChord", "Your results will appear here.")
+                rows.isEmpty() -> DesktopEmptyPage(BitChordIcons.Search, "Search BitChord", "Your results will appear here.")
                 else -> LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = pagePadding(bottom = 32.dp),
@@ -3949,10 +3965,10 @@ private fun DesktopArtistPage(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 verticalArrangement = Arrangement.spacedBy(10.dp),
                             ) {
-                                DesktopActionButton(DesktopStrings["play", "Play"], Icons.Rounded.PlayArrow) {
+                                DesktopActionButton(DesktopStrings["play", "Play"], BitChordIcons.Play) {
                                     if (top.isNotEmpty()) onPlaySongs(top, 0)
                                 }
-                                DesktopActionButton(DesktopStrings["shuffle", "Shuffle"], Icons.Rounded.Shuffle) { onShuffle(top) }
+                                DesktopActionButton(DesktopStrings["shuffle", "Shuffle"], BitChordIcons.Shuffle) { onShuffle(top) }
                                 val subscription = artist.subscription
                                 if (subscription != null && onToggleSubscription != null) {
                                     DesktopSubscribeButton(subscription.subscribed) {
@@ -4101,15 +4117,15 @@ private fun DesktopSubscribeButton(subscribed: Boolean, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            if (subscribed) Icons.Rounded.Check else Icons.Rounded.Add,
+            if (subscribed) BitChordIcons.Check else BitChordIcons.Plus,
             null,
-            tint = if (subscribed) DesktopSecondary else Color.White,
+            tint = if (subscribed) DesktopSecondary else Color.Black,
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(8.dp))
         Text(
             if (subscribed) "Subscribed" else "Subscribe",
-            color = if (subscribed) DesktopSecondary else Color.White,
+            color = if (subscribed) DesktopSecondary else Color.Black,
             fontWeight = FontWeight.SemiBold,
         )
     }
@@ -4205,7 +4221,7 @@ private fun DesktopTopResultCard(
             }
             IconButton(onClick = { onToggleLike(song) }, modifier = Modifier.size(36.dp)) {
                 Icon(
-                    if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                    if (liked) BitChordIcons.HeartFilled else BitChordIcons.Heart,
                     "Favorite",
                     tint = if (liked) DesktopAccent else DesktopSecondary,
                     modifier = Modifier.size(19.dp),
@@ -4219,7 +4235,7 @@ private fun DesktopTopResultCard(
                     CircularProgressIndicator(Modifier.size(16.dp), color = DesktopAccent, strokeWidth = 2.dp)
                 } else {
                     Icon(
-                        if (downloaded) Icons.Rounded.Download else Icons.Rounded.CloudDownload,
+                        if (downloaded) BitChordIcons.Download else BitChordIcons.Download,
                         if (downloaded) "Downloaded" else "Download",
                         tint = if (downloaded) DesktopAccent else DesktopSecondary,
                         modifier = Modifier.size(19.dp),
@@ -4229,7 +4245,7 @@ private fun DesktopTopResultCard(
         }
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            DesktopActionButton(DesktopStrings["play", "Play"], Icons.Rounded.PlayArrow, onClick = onPlay)
+            DesktopActionButton(DesktopStrings["play", "Play"], BitChordIcons.Play, onClick = onPlay)
             DesktopActionButton(DesktopStrings["playlist_action", "Playlist"], Icons.AutoMirrored.Rounded.PlaylistAdd) { onAddToPlaylist(song) }
         }
     }
@@ -4307,7 +4323,7 @@ private fun DesktopLibraryPage(
                                 DropdownMenuItem(
                                     text = { Text(option.label()) },
                                     trailingIcon = if (option == shelfSort) {
-                                        { Icon(Icons.Rounded.Check, contentDescription = null) }
+                                        { Icon(BitChordIcons.Check, contentDescription = null) }
                                     } else {
                                         null
                                     },
@@ -4340,7 +4356,7 @@ private fun DesktopLibraryPage(
                 cloud is UiState.Error -> item { DesktopErrorPage(cloud.message, onRetryCloud) }
                 cloud is UiState.Success && cloud.data.shelves.isEmpty() -> item {
                     DesktopEmptyPage(
-                        Icons.Rounded.LibraryMusic,
+                        BitChordIcons.Library,
                         "Nothing saved yet",
                         "Playlists, albums and artists you save on YouTube Music show up here.",
                     )
@@ -4361,14 +4377,14 @@ private fun DesktopLibraryPage(
                 ) {
                     playlists.forEach { playlist ->
                         LibraryTile(
-                            Icons.Rounded.QueueMusic,
+                            BitChordIcons.Queue,
                             playlist.title,
                             "${playlist.songs.size} songs",
                         ) { onOpenPlaylist(playlist) }
                     }
                     // Last in the row, where the listener asked for it.
                     LibraryTile(
-                        Icons.Rounded.Add,
+                        BitChordIcons.Plus,
                         DesktopStrings["new_playlist", "New Playlist"],
                         "Create a collection",
                         onClick = onCreatePlaylist,
@@ -4396,7 +4412,7 @@ private fun DesktopHistoryPage(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             item { PageHeading(DesktopStrings["history", "History"], DesktopStrings["d_recently_played_on_this_computer", "Recently played on this computer"], gutter = 0.dp) }
-            if (history.isEmpty()) item { DesktopEmptyPage(Icons.Rounded.History, "Nothing played yet", "Songs you play will show up here.") }
+            if (history.isEmpty()) item { DesktopEmptyPage(BitChordIcons.Clock, "Nothing played yet", "Songs you play will show up here.") }
             else items(history, key = Song::videoId) {
                 DesktopSongRow(
                     song = it,
@@ -4428,7 +4444,7 @@ private fun DesktopDownloadsPage(
         menu = menu,
         title = DesktopStrings["downloads", "Downloads"],
         subtitle = DesktopStrings["d_available_offline", "Available offline"],
-        emptyIcon = Icons.Rounded.CloudDownload,
+        emptyIcon = BitChordIcons.Download,
         emptyTitle = DesktopStrings["d_no_downloads", "No downloads"],
         emptyDescription = DesktopStrings["d_downloaded_songs_will_appear_here", "Downloaded songs will appear here."],
         persistenceKey = "downloaded",
@@ -4442,7 +4458,7 @@ private fun DesktopLocalMusicPage(
     contentPadding: PaddingValues,
     title: String = "Local Music",
     subtitle: String = "Audio files found in Music and Downloads",
-    emptyIcon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Rounded.MusicNote,
+    emptyIcon: androidx.compose.ui.graphics.vector.ImageVector = BitChordIcons.MusicNote,
     emptyTitle: String = "No local music",
     emptyDescription: String = "Put audio files in your Music folder and reopen this page.",
     persistenceKey: String = "local",
@@ -4511,7 +4527,7 @@ private fun DesktopLocalMusicPage(
                     view = if (view == DesktopLibraryView.LIST) DesktopLibraryView.GRID else DesktopLibraryView.LIST
                     persistence.saveString("${persistenceKey}_view", view.name)
                 }) {
-                    Icon(if (view == DesktopLibraryView.LIST) Icons.Rounded.ViewModule else Icons.Rounded.ViewList, "Change view")
+                    Icon(if (view == DesktopLibraryView.LIST) BitChordIcons.GridView else BitChordIcons.ListView, "Change view")
                 }
             }
             Spacer(Modifier.height(10.dp))
@@ -4554,7 +4570,7 @@ private fun DesktopLibrarySongContent(
     menu: (@Composable (Song) -> Unit)? = null,
 ) {
     if (songs.isEmpty()) {
-        DesktopEmptyPage(Icons.Rounded.Search, "No matching music", "Try a different search.")
+        DesktopEmptyPage(BitChordIcons.Search, "No matching music", "Try a different search.")
     } else if (view == DesktopLibraryView.GRID) {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 150.dp),
@@ -4599,7 +4615,7 @@ private fun DesktopLibraryGroupingContent(
     onGroupClick: (Pair<String, List<Song>>) -> Unit,
 ) {
     if (groups.isEmpty()) {
-        DesktopEmptyPage(Icons.Rounded.Search, "Nothing here yet", "Music will be grouped as it is added.")
+        DesktopEmptyPage(BitChordIcons.Search, "Nothing here yet", "Music will be grouped as it is added.")
     } else if (view == DesktopLibraryView.GRID) {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 150.dp),
@@ -4634,7 +4650,7 @@ private fun DesktopLibraryGroupingContent(
                         Text(group.key, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
                         Text("${group.value.size} songs", color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
                     }
-                    Icon(Icons.Rounded.PlayArrow, DesktopStrings["open", "Open"], tint = DesktopSecondary)
+                    Icon(BitChordIcons.Play, DesktopStrings["open", "Open"], tint = DesktopSecondary)
                 }
             }
         }
@@ -4767,7 +4783,7 @@ private fun DesktopSettingsDialog(
                         SettingsToggle(DesktopStrings["autoplay", "Autoplay"], DesktopStrings["d_keep_the_music_going_with_similar_songs", "Keep the music going with similar songs"], autoplay, onAutoplayChange)
                         SettingsToggle(DesktopStrings["shuffle", "Shuffle"], DesktopStrings["d_mix_the_order_of_the_current_queue", "Mix the order of the current queue"], shuffle, onShuffleChange)
                     SettingsRow(
-                        Icons.Rounded.Repeat,
+                        BitChordIcons.Repeat,
                         DesktopStrings["d_repeat", "Repeat"],
                         "${repeatMode.label()} · Tap to change",
                     ) { onRepeatModeChange(repeatMode.next()) }
@@ -4793,12 +4809,11 @@ private fun DesktopSettingsDialog(
                                 color = DesktopSecondary,
                                 style = MaterialTheme.typography.bodySmall,
                             )
-                            Slider(
+                            DesktopBareSlider(
                                 value = crossfadeSeconds.toFloat(),
                                 onValueChange = { onCrossfadeSecondsChange(it.toInt()) },
                                 valueRange = 0f..12f,
                                 steps = 11,
-                                colors = androidx.compose.material3.SliderDefaults.colors(activeTrackColor = DesktopAccent, thumbColor = DesktopAccent),
                             )
                         }
                     }
@@ -4824,6 +4839,7 @@ private fun DesktopSettingsDialog(
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 AutomixPerformanceMode.entries.forEach { mode ->
                                     FilterChip(
+                                        colors = desktopChipColors(),
                                         selected = automixPerformance == mode,
                                         onClick = { onAutomixPerformanceChange(mode) },
                                         label = { Text(mode.label()) },
@@ -4979,7 +4995,7 @@ private fun DesktopSettingsDialog(
                                 DropdownMenuItem(
                                     text = { Text(language.label) },
                                     trailingIcon = if (language.tag == chosen) {
-                                        { Icon(Icons.Rounded.Check, contentDescription = null) }
+                                        { Icon(BitChordIcons.Check, contentDescription = null) }
                                     } else {
                                         null
                                     },
@@ -5009,17 +5025,14 @@ private fun DesktopSettingsDialog(
                             color = DesktopSecondary,
                             style = MaterialTheme.typography.bodySmall,
                         )
-                        Slider(
+                        DesktopBareSlider(
                             value = limitMb.toFloat(),
                             onValueChange = { limitMb = it.roundToInt() },
                             onValueChangeFinished = { DesktopMediaCache.setLimitMb(limitMb) },
                             valueRange = DesktopMediaCache.MIN_LIMIT_MB.toFloat()..
                                 DesktopMediaCache.MAX_LIMIT_MB.toFloat(),
                             steps = 18,
-                            colors = androidx.compose.material3.SliderDefaults.colors(
-                                activeTrackColor = DesktopAccent,
-                                thumbColor = DesktopAccent,
-                            ),
+                            modifier = Modifier.fillMaxWidth(),
                         )
                         Text(formatCacheSize(limitMb), color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
                     }
@@ -5054,7 +5067,7 @@ private fun DesktopSettingsDialog(
                     }
                     if (DesktopLocalMusic.folder() != null) {
                         SettingsRow(
-                            Icons.Rounded.LibraryMusic,
+                            BitChordIcons.Library,
                             DesktopStrings["use_all_audio_folders", "Use all audio folders"],
                             DesktopStrings["use_all_audio_folders_subtitle", "Remove the folder limit and scan music across the device"],
                         ) {
@@ -5108,6 +5121,7 @@ private fun DesktopSettingsDialog(
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             DesktopAudioQuality.entries.forEach { rung ->
                                 FilterChip(
+                                    colors = desktopChipColors(),
                                     selected = audioQuality == rung,
                                     onClick = { onAudioQualityChange(rung) },
                                     label = { Text(rung.label) },
@@ -5131,6 +5145,7 @@ private fun DesktopSettingsDialog(
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf("PCM_16" to "16-bit PCM", "FLOAT_32" to "32-bit float").forEach { (value, label) ->
                                 FilterChip(
+                                    colors = desktopChipColors(),
                                     selected = outputPrecision == value,
                                     onClick = { onOutputPrecisionChange(value) },
                                     label = { Text(label) },
@@ -5157,6 +5172,7 @@ private fun DesktopSettingsDialog(
                     ) {
                         listOf("STANDARD" to "Standard", "HIGH" to "High", "LOSSLESS" to "Lossless").forEach { (value, label) ->
                             FilterChip(
+                                colors = desktopChipColors(),
                                 selected = downloadQuality == value,
                                 onClick = { onDownloadQualityChange(value) },
                                 label = { Text(label) },
@@ -5189,7 +5205,7 @@ private fun DesktopSettingsDialog(
                     if (sourceConfigs.isNotEmpty()) HorizontalDivider(color = DesktopDivider)
                     // One entry point, and it creates an addon.
                     SettingsRow(
-                        Icons.Rounded.Add,
+                        BitChordIcons.Plus,
                         "Add a source",
                         DesktopSourceKind.ADDON.detail,
                     ) {
@@ -5226,7 +5242,7 @@ private fun DesktopSettingsDialog(
                 shape = RoundedCornerShape(50),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = DesktopAccent,
-                    contentColor = Color.White,
+                    contentColor = Color.Black,
                 ),
                 contentPadding = PaddingValues(horizontal = 26.dp, vertical = 10.dp),
             ) {
@@ -5377,7 +5393,7 @@ private fun DesktopLicensesDialog(onDismiss: () -> Unit) {
                 Button(
                     onClick = onDismiss,
                     shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(containerColor = DesktopAccent),
+                    colors = ButtonDefaults.buttonColors(containerColor = DesktopAccent, contentColor = Color.Black),
                 ) { Text(DesktopStrings["done", "Done"]) }
             }
         }
@@ -5440,7 +5456,7 @@ private fun DesktopSourceSettingsRow(
         if (onToggle == null) {
             Text(DesktopStrings["always_on", "Always on"], color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
         } else {
-            Switch(checked = config.enabled, onCheckedChange = onToggle)
+            Switch(checked = config.enabled, onCheckedChange = onToggle, colors = desktopSwitchColors())
         }
     }
 }
@@ -5692,13 +5708,13 @@ private fun DesktopCollectionPage(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            DesktopActionButton(DesktopStrings["play", "Play"], Icons.Rounded.PlayArrow) {
+                            DesktopActionButton(DesktopStrings["play", "Play"], BitChordIcons.Play) {
                                 if (songs.isNotEmpty()) onPlaySongs(songs, 0)
                             }
-                            DesktopActionButton(DesktopStrings["shuffle", "Shuffle"], Icons.Rounded.Shuffle) { onShuffle(songs) }
+                            DesktopActionButton(DesktopStrings["shuffle", "Shuffle"], BitChordIcons.Shuffle) { onShuffle(songs) }
                             DesktopActionButton(
                                 DesktopStrings["download_all", "Download all"],
-                                Icons.Rounded.Download,
+                                BitChordIcons.Download,
                             ) { onDownloadAll(songs) }
                             onRename?.let { DesktopActionButton(DesktopStrings["rename", "Rename"], Icons.Rounded.Edit, onClick = it) }
                             onDelete?.let { DesktopActionButton(DesktopStrings["delete", "Delete"], Icons.Rounded.Delete, onClick = it) }
@@ -5808,7 +5824,7 @@ private fun DesktopCollectionSongRow(
         Text(
             song.title,
             Modifier.weight(0.42f),
-            color = if (nowPlaying) DesktopAccent else Color.White,
+            color = if (nowPlaying) Color.White else Color.White.copy(alpha = 0.75f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             fontWeight = FontWeight.Medium,
@@ -5851,7 +5867,7 @@ private fun DesktopCollectionSongRow(
             onToggleLike?.let { onLike ->
                 IconButton(onClick = { onLike(song) }, modifier = Modifier.size(34.dp)) {
                     Icon(
-                        if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                        if (liked) BitChordIcons.HeartFilled else BitChordIcons.Heart,
                         "Favorite",
                         tint = if (liked) DesktopAccent else DesktopSecondary,
                         modifier = Modifier.size(18.dp),
@@ -5864,7 +5880,7 @@ private fun DesktopCollectionSongRow(
                         CircularProgressIndicator(Modifier.size(16.dp), color = DesktopAccent, strokeWidth = 2.dp)
                     } else {
                         Icon(
-                            if (downloaded) Icons.Rounded.Download else Icons.Rounded.CloudDownload,
+                            if (downloaded) BitChordIcons.Download else BitChordIcons.Download,
                             if (downloaded) "Downloaded" else "Download",
                             tint = if (downloaded) DesktopAccent else DesktopSecondary,
                             modifier = Modifier.size(18.dp),
@@ -5874,11 +5890,11 @@ private fun DesktopCollectionSongRow(
             }
             onAddToPlaylist?.let { onAdd ->
                 IconButton(onClick = { onAdd(song) }, modifier = Modifier.size(34.dp)) {
-                    Icon(Icons.Rounded.Add, DesktopStrings["add_to_playlist", "Add to playlist"], tint = DesktopSecondary, modifier = Modifier.size(18.dp))
+                    Icon(BitChordIcons.Plus, DesktopStrings["add_to_playlist", "Add to playlist"], tint = DesktopSecondary, modifier = Modifier.size(18.dp))
                 }
             }
             IconButton(onClick = { onClick(song) }, modifier = Modifier.size(34.dp)) {
-                Icon(Icons.Rounded.PlayArrow, DesktopStrings["play", "Play"], tint = DesktopAccent, modifier = Modifier.size(19.dp))
+                Icon(BitChordIcons.Play, DesktopStrings["play", "Play"], tint = DesktopAccent, modifier = Modifier.size(19.dp))
             }
         }
     }
@@ -6061,7 +6077,7 @@ private fun DesktopNowPlayingPage(
                                         // A bare lyric timestamp is the instrumental/music-verse
                                         // marker in Android's lyrics panel.
                                         Icon(
-                                            imageVector = Icons.Rounded.MusicNote,
+                                            imageVector = BitChordIcons.MusicNote,
                                             contentDescription = DesktopStrings["instrumental", "Instrumental"],
                                             tint = Color.White.copy(alpha = if (active) 1f else 0.62f),
                                             modifier = lineModifier.size(32.dp),
@@ -6135,7 +6151,7 @@ private fun DesktopNowPlayingPage(
                         modifier = Modifier.opensArtist(song.artistId) { onOpenArtist(song) },
                     )
                     if (error != null) {
-                        Text(error, color = DesktopAccent, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                        Text(error, color = DesktopDestructive, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                     }
                     Spacer(Modifier.height(18.dp))
                     if (!lyricsVisible && syncedLyrics) {
@@ -6152,10 +6168,10 @@ private fun DesktopNowPlayingPage(
                         )
                         Spacer(Modifier.height(6.dp))
                     }
-                    Slider(
+                    DesktopThinSlider(
                         value = if (durationMs > 0) progressMs.toFloat() / durationMs else 0f,
                         onValueChange = { onSeek((it * durationMs).toLong()) },
-                        colors = androidx.compose.material3.SliderDefaults.colors(activeTrackColor = DesktopAccent, thumbColor = DesktopAccent),
+                        modifier = Modifier.fillMaxWidth(),
                     )
                     Box(Modifier.fillMaxWidth()) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -6173,7 +6189,7 @@ private fun DesktopNowPlayingPage(
                     if (docked) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
                             IconButton(onClick = { onShuffleChange(!shuffle) }) {
-                                Icon(Icons.Rounded.Shuffle, DesktopStrings["shuffle", "Shuffle"], tint = if (shuffle) DesktopAccent else Color.White)
+                                Icon(BitChordIcons.Shuffle, DesktopStrings["shuffle", "Shuffle"], tint = if (shuffle) Color.White else Color.White.copy(alpha = 0.75f))
                             }
                             IconButton(onClick = onPrevious) { Icon(Icons.Rounded.FastRewind, DesktopStrings["widget_previous", "Previous"]) }
                             IconButton(onClick = onPlayPause, modifier = Modifier.size(58.dp).clip(CircleShape).background(Color.White)) {
@@ -6181,11 +6197,11 @@ private fun DesktopNowPlayingPage(
                             }
                             IconButton(onClick = onNext) { Icon(Icons.Rounded.FastForward, DesktopStrings["widget_next", "Next"]) }
                             IconButton(onClick = { onRepeatModeChange(repeatMode.next()) }) {
-                                Icon(Icons.Rounded.Repeat, "Repeat ${repeatMode.label()}", tint = if (repeatMode != DesktopRepeatMode.OFF) DesktopAccent else Color.White)
+                                Icon(BitChordIcons.Repeat, "Repeat ${repeatMode.label()}", tint = if (repeatMode != DesktopRepeatMode.OFF) Color.White else Color.White.copy(alpha = 0.75f))
                             }
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = onToggleLike) { Icon(if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, "Favorite", tint = if (liked) DesktopAccent else Color.White) }
+                            IconButton(onClick = onToggleLike) { Icon(if (liked) BitChordIcons.HeartFilled else BitChordIcons.Heart, "Favorite", tint = if (liked) Color.White else Color.White.copy(alpha = 0.75f)) }
                             DesktopSongMenuAnchor(
                                 song = song,
                                 liked = liked,
@@ -6195,7 +6211,7 @@ private fun DesktopNowPlayingPage(
                                 onUpgradeQuality = onUpgradeQuality.takeIf { pinnedToOriginal },
                             )
                             IconButton(onClick = { onAutoplayChange(!autoplay) }) {
-                                Icon(Icons.Rounded.AllInclusive, DesktopStrings["autoplay", "Autoplay"], tint = if (autoplay) DesktopAccent else Color.White)
+                                Icon(BitChordIcons.Infinity, DesktopStrings["autoplay", "Autoplay"], tint = if (autoplay) Color.White else Color.White.copy(alpha = 0.75f))
                             }
                             TextButton(onClick = {
                                 val next = when {
@@ -6211,9 +6227,9 @@ private fun DesktopNowPlayingPage(
                     } else {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(26.dp)) {
                             IconButton(onClick = { onShuffleChange(!shuffle) }) {
-                                Icon(Icons.Rounded.Shuffle, DesktopStrings["shuffle", "Shuffle"], tint = if (shuffle) DesktopAccent else Color.White)
+                                Icon(BitChordIcons.Shuffle, DesktopStrings["shuffle", "Shuffle"], tint = if (shuffle) Color.White else Color.White.copy(alpha = 0.75f))
                             }
-                            IconButton(onClick = onToggleLike) { Icon(if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, "Favorite", tint = if (liked) DesktopAccent else Color.White) }
+                            IconButton(onClick = onToggleLike) { Icon(if (liked) BitChordIcons.HeartFilled else BitChordIcons.Heart, "Favorite", tint = if (liked) Color.White else Color.White.copy(alpha = 0.75f)) }
                             DesktopSongMenuAnchor(
                                 song = song,
                                 liked = liked,
@@ -6229,13 +6245,13 @@ private fun DesktopNowPlayingPage(
                             IconButton(onClick = onNext) { Icon(Icons.Rounded.FastForward, DesktopStrings["widget_next", "Next"], modifier = Modifier.size(32.dp)) }
                             IconButton(onClick = { onRepeatModeChange(repeatMode.next()) }) {
                                 Icon(
-                                    Icons.Rounded.Repeat,
+                                    BitChordIcons.Repeat,
                                     "Repeat ${repeatMode.label()}",
-                                    tint = if (repeatMode != DesktopRepeatMode.OFF) DesktopAccent else Color.White,
+                                    tint = if (repeatMode != DesktopRepeatMode.OFF) Color.White else Color.White.copy(alpha = 0.75f),
                                 )
                             }
                             IconButton(onClick = { onAutoplayChange(!autoplay) }) {
-                                Icon(Icons.Rounded.AllInclusive, DesktopStrings["autoplay", "Autoplay"], tint = if (autoplay) DesktopAccent else Color.White)
+                                Icon(BitChordIcons.Infinity, DesktopStrings["autoplay", "Autoplay"], tint = if (autoplay) Color.White else Color.White.copy(alpha = 0.75f))
                             }
                             TextButton(onClick = {
                                 val next = when {
@@ -6432,15 +6448,12 @@ private fun DesktopWideNowPlayingLayout(
         val hideVolumeBar by DesktopAppearanceSettings.hideVolumeBar.collectAsState()
         if (!hideVolumeBar) {
             DesktopPlayerPill(Modifier.align(Alignment.TopEnd).padding(end = 20.dp, top = 18.dp)) {
-                Slider(
+                DesktopThinSlider(
                     value = volume,
                     onValueChange = onVolumeChange,
-                    modifier = Modifier.width(120.dp).height(20.dp),
-                    colors = SliderDefaults.colors(
-                        thumbColor = Color.White,
-                        activeTrackColor = Color.White,
-                        inactiveTrackColor = Color.White.copy(alpha = 0.28f),
-                    ),
+                    idleHeight = 6.dp,
+                    activeHeight = 10.dp,
+                    modifier = Modifier.width(120.dp),
                 )
                 Spacer(Modifier.width(10.dp))
                 Icon(Icons.Rounded.VolumeUp, DesktopStrings["d_volume", "Volume"], tint = Color.White, modifier = Modifier.size(20.dp))
@@ -6460,7 +6473,7 @@ private fun DesktopWideNowPlayingLayout(
                 selected = panel == DesktopPlayerPanel.LYRICS,
             ) {
                 Icon(
-                    Icons.Rounded.Lyrics,
+                    BitChordIcons.LyricsQuote,
                     DesktopStrings["open_lyrics", "Lyrics"],
                     tint = if (panel == DesktopPlayerPanel.LYRICS) Color.Black else Color.White,
                     modifier = Modifier.size(19.dp),
@@ -6480,7 +6493,7 @@ private fun DesktopWideNowPlayingLayout(
                 selected = panel == DesktopPlayerPanel.QUEUE,
             ) {
                 Icon(
-                    Icons.Rounded.ViewList,
+                    BitChordIcons.Queue,
                     DesktopStrings["up_next", "Up Next"],
                     tint = if (panel == DesktopPlayerPanel.QUEUE) Color.Black else Color.White,
                     modifier = Modifier.size(19.dp),
@@ -6736,7 +6749,7 @@ private fun DesktopPlayerStage(
                     }
                     IconButton(onClick = onToggleLike) {
                         Icon(
-                            if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                            if (liked) BitChordIcons.HeartFilled else BitChordIcons.Heart,
                             "Favorite",
                             tint = if (liked) DesktopAccent else Color.White.copy(alpha = 0.75f),
                             modifier = Modifier.size(20.dp),
@@ -6774,9 +6787,10 @@ private fun DesktopPlayerStage(
                         durationMs = durationMs,
                         isPlaying = isPlaying,
                         onClick = onOpenLyrics,
-                        modifier = Modifier.fillMaxWidth(),
+                        // The slider's hit target reaches well above its drawn bar, so the strip
+                        // reads as further off it than it is. Nudged down into that dead space.
+                        modifier = Modifier.fillMaxWidth().offset(y = 6.dp),
                     )
-                    Spacer(Modifier.height(6.dp))
                 }
                 var scrubbing by remember(song.videoId) { mutableStateOf(false) }
                 var scrubValue by remember(song.videoId) { mutableStateOf(0f) }
@@ -6801,7 +6815,7 @@ private fun DesktopPlayerStage(
                 )
                 // The slider draws its track a few pixels inside its own height, so a gap measured
                 // from its bounds reads larger than it is.
-                Box(Modifier.fillMaxWidth()) {
+                Box(Modifier.fillMaxWidth().offset(y = (-9).dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(
                             if (durationMs > 0) formatTime((shown * durationMs).toLong()) else "--:--",
@@ -6835,14 +6849,12 @@ private fun DesktopPlayerStage(
                         Modifier.weight(1f).offset(x = -CONTROL_GLYPH_INSET),
                         contentAlignment = Alignment.CenterStart,
                     ) {
-                        IconButton(onClick = { onShuffleChange(!shuffle) }) {
-                            Icon(
-                                Icons.Rounded.Shuffle,
-                                DesktopStrings["shuffle", "Shuffle"],
-                                tint = if (shuffle) DesktopAccent else Color.White.copy(alpha = 0.85f),
-                                modifier = Modifier.size(21.dp),
-                            )
-                        }
+                        DesktopPlayerToggle(
+                            onClick = { onShuffleChange(!shuffle) },
+                            highlighted = shuffle,
+                            contentDescription = DesktopStrings["shuffle", "Shuffle"],
+                            icon = BitChordIcons.Shuffle,
+                        )
                     }
                     Row(
                         // The cluster grows with the row it sits in.
@@ -6889,17 +6901,46 @@ private fun DesktopPlayerStage(
                                 style = MaterialTheme.typography.labelMedium,
                             )
                         }
-                        IconButton(onClick = { onRepeatModeChange(repeatMode.next()) }) {
-                            Icon(
-                                if (repeatMode == DesktopRepeatMode.ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
-                                "Repeat ${repeatMode.label()}",
-                                tint = if (repeatMode != DesktopRepeatMode.OFF) DesktopAccent else Color.White.copy(alpha = 0.85f),
-                                modifier = Modifier.size(21.dp),
-                            )
-                        }
+                        // Repeat-one is a bold "1" rather than a glyph of its own, as on Android.
+                        DesktopPlayerToggle(
+                            onClick = { onRepeatModeChange(repeatMode.next()) },
+                            highlighted = repeatMode != DesktopRepeatMode.OFF,
+                            contentDescription = "Repeat ${repeatMode.label()}",
+                            icon = BitChordIcons.Repeat.takeIf { repeatMode != DesktopRepeatMode.ONE },
+                            label = "1".takeIf { repeatMode == DesktopRepeatMode.ONE },
+                        )
                     }
                 }
             }
+        }
+    }
+}
+
+/** A player toggle: a translucent disc while it is on, a dimmer glyph while it is off. */
+@Composable
+private fun DesktopPlayerToggle(
+    onClick: () -> Unit,
+    highlighted: Boolean,
+    contentDescription: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    /** Stands in for the glyph, for the repeat-one "1" Android shows instead of an icon. */
+    label: String? = null,
+) {
+    val tint = Color.White.copy(alpha = if (highlighted) 1f else 0.75f)
+    Box(
+        Modifier
+            // Required, not preferred: the transport cluster squeezes a preferred size into a pill.
+            .requiredSize(38.dp)
+            .clip(CircleShape)
+            .background(if (highlighted) Color.White.copy(alpha = 0.20f) else Color.Transparent)
+            .clickable(onClick = onClick)
+            .semantics { this.contentDescription = contentDescription },
+        contentAlignment = Alignment.Center,
+    ) {
+        if (icon != null) {
+            Icon(icon, null, tint = tint, modifier = Modifier.size(21.dp))
+        } else if (label != null) {
+            Text(label, color = tint, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
         }
     }
 }
@@ -7367,7 +7408,7 @@ private fun DesktopPlayerQueuePanel(
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             DesktopQueueModeButton(
-                icon = Icons.Rounded.AllInclusive,
+                icon = BitChordIcons.Infinity,
                 label = DesktopStrings["autoplay", "AutoPlay"],
                 selected = autoplay,
                 onClick = { onAutoplayChange(!autoplay) },
@@ -7375,7 +7416,7 @@ private fun DesktopPlayerQueuePanel(
             )
             // Shuffle, not crossfade.
             DesktopQueueModeButton(
-                icon = Icons.Rounded.Shuffle,
+                icon = BitChordIcons.Shuffle,
                 label = DesktopStrings["shuffle", "Shuffle"],
                 selected = shuffle,
                 onClick = { onShuffleChange(!shuffle) },
@@ -7566,7 +7607,7 @@ internal fun DesktopScrollableRow(
         )
         DesktopShelfArrow(
             alignment = Alignment.CenterEnd,
-            icon = Icons.Rounded.ChevronRight,
+            icon = BitChordIcons.ChevronRight,
             description = DesktopStrings["d_scroll_right", "Scroll right"],
             visible = hovered && rowState.canScrollForward,
             onClick = { page(forward = true) },
@@ -7687,7 +7728,7 @@ private fun DesktopSongRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 fontWeight = FontWeight.Medium,
-                color = if (song.isNowPlaying()) DesktopAccent else Color.White,
+                color = if (song.isNowPlaying()) Color.White else Color.White.copy(alpha = 0.75f),
             )
             Text(listOfNotNull(song.artist.takeIf(String::isNotBlank), song.durationText).joinToString(" · "), color = DesktopSecondary, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -7706,7 +7747,7 @@ private fun DesktopSongRow(
             }
         }
         if (onToggleLike != null) {
-            IconButton(onClick = { onToggleLike(song) }) { Icon(if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, "Favorite", tint = if (liked) DesktopAccent else DesktopSecondary) }
+            IconButton(onClick = { onToggleLike(song) }) { Icon(if (liked) BitChordIcons.HeartFilled else BitChordIcons.Heart, "Favorite", tint = if (liked) DesktopAccent else DesktopSecondary) }
         }
         if (onDownload != null) {
             if (downloadInProgress) {
@@ -7720,7 +7761,7 @@ private fun DesktopSongRow(
             } else {
                 IconButton(onClick = { if (!downloaded) onDownload(song) }) {
                     Icon(
-                        imageVector = if (downloaded) Icons.Rounded.Download else Icons.Rounded.CloudDownload,
+                        imageVector = if (downloaded) BitChordIcons.Download else BitChordIcons.Download,
                         contentDescription = if (downloaded) "Downloaded" else "Download",
                         tint = if (downloaded) DesktopAccent else DesktopSecondary,
                     )
@@ -7729,13 +7770,13 @@ private fun DesktopSongRow(
         }
         if (onAddToPlaylist != null) {
             IconButton(onClick = { onAddToPlaylist(song) }) {
-                Icon(Icons.Rounded.Add, DesktopStrings["add_to_playlist", "Add to playlist"], tint = DesktopSecondary)
+                Icon(BitChordIcons.Plus, DesktopStrings["add_to_playlist", "Add to playlist"], tint = DesktopSecondary)
             }
         }
         // The same menu every other surface opens, so a row on a list page offers what a row on
         // the player does rather than only a play button.
         menu?.invoke(song)
-        IconButton(onClick = { onClick(song) }) { Icon(Icons.Rounded.PlayArrow, DesktopStrings["play", "Play"], tint = DesktopAccent) }
+        IconButton(onClick = { onClick(song) }) { Icon(BitChordIcons.Play, DesktopStrings["play", "Play"], tint = DesktopAccent) }
     }
 }
 
@@ -7779,7 +7820,7 @@ private fun DesktopPlayerBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (song == null) {
-            Icon(Icons.Rounded.MusicNote, null, tint = DesktopSecondary)
+            Icon(BitChordIcons.MusicNote, null, tint = DesktopSecondary)
             Spacer(Modifier.width(12.dp))
             Text(DesktopStrings["d_choose_something_to_play", "Choose something to play"], color = DesktopSecondary)
         } else {
@@ -7788,14 +7829,14 @@ private fun DesktopPlayerBar(
                 Spacer(Modifier.width(12.dp))
                 Column {
                     Text(song.title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
-                    Text(error ?: song.artist, color = if (error == null) DesktopSecondary else DesktopAccent, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(error ?: song.artist, color = if (error == null) DesktopSecondary else DesktopDestructive, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            IconButton(onClick = onToggleLike) { Icon(if (isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, "Favorite", tint = if (isLiked) DesktopAccent else Color.White) }
+            IconButton(onClick = onToggleLike) { Icon(if (isLiked) BitChordIcons.HeartFilled else BitChordIcons.Heart, "Favorite", tint = if (isLiked) Color.White else Color.White.copy(alpha = 0.75f)) }
             IconButton(onClick = onPrevious) { Icon(Icons.Rounded.FastRewind, DesktopStrings["widget_previous", "Previous"]) }
             IconButton(onClick = onPlayPause) { Icon(if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, if (isPlaying) "Pause" else "Play", modifier = Modifier.size(30.dp)) }
             IconButton(onClick = onNext) { Icon(Icons.Rounded.FastForward, DesktopStrings["widget_next", "Next"]) }
-            IconButton(onClick = onOpenQueue) { Icon(Icons.Rounded.QueueMusic, DesktopStrings["queue", "Queue"]) }
+            IconButton(onClick = onOpenQueue) { Icon(BitChordIcons.Queue, DesktopStrings["queue", "Queue"]) }
             Icon(Icons.Rounded.VolumeUp, DesktopStrings["d_volume", "Volume"], tint = DesktopSecondary, modifier = Modifier.padding(start = 8.dp))
         }
     }
@@ -7936,7 +7977,7 @@ private fun SettingsNavigationRow(title: String, subtitle: String, onClick: () -
         }
         Spacer(Modifier.width(10.dp))
         Icon(
-            Icons.Rounded.ChevronRight,
+            BitChordIcons.ChevronRight,
             null,
             tint = DesktopSecondary,
             modifier = Modifier.size(18.dp),
@@ -7968,11 +8009,46 @@ private fun SettingsSwitchRow(
             Text(title, color = if (enabled) Color.White else DesktopSecondary)
             Text(subtitle, color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
         }
-        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled, colors = desktopSwitchColors())
     }
 }
 
 /** A settings row whose control is a slider, with its value read out beside the title. */
+/** Material's slider with the step ticks and end-stop dot taken off, as Android draws them. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun DesktopBareSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
+    steps: Int = 0,
+    onValueChangeFinished: (() -> Unit)? = null,
+) {
+    val colors = SliderDefaults.colors(
+        thumbColor = Color.White,
+        activeTrackColor = Color.White,
+        inactiveTrackColor = Color.White.copy(alpha = 0.24f),
+    )
+    Slider(
+        value = value,
+        onValueChange = onValueChange,
+        onValueChangeFinished = onValueChangeFinished,
+        valueRange = valueRange,
+        steps = steps,
+        colors = colors,
+        track = { state ->
+            SliderDefaults.Track(
+                sliderState = state,
+                colors = colors,
+                drawStopIndicator = null,
+                drawTick = { _, _ -> },
+            )
+        },
+        modifier = modifier,
+    )
+}
+
 @Composable
 private fun SettingsSlider(
     title: String,
@@ -7991,7 +8067,7 @@ private fun SettingsSlider(
             }
             Text(readout, color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
         }
-        Slider(
+        DesktopBareSlider(
             value = value,
             onValueChange = onValueChange,
             valueRange = range,
@@ -8005,7 +8081,7 @@ private fun SettingsSlider(
 private fun SettingsToggle(title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) { Text(title); Text(subtitle, color = DesktopSecondary, style = MaterialTheme.typography.bodySmall) }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(checked = checked, onCheckedChange = onCheckedChange, colors = desktopSwitchColors())
     }
 }
 
@@ -8038,9 +8114,9 @@ private fun DesktopActionButton(
     onClick: () -> Unit,
 ) {
     Row(modifier.clip(CircleShape).background(DesktopAccent).clickable(onClick = onClick).padding(horizontal = 18.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, tint = Color.White, modifier = Modifier.size(18.dp))
+        Icon(icon, null, tint = Color.Black, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
-        Text(label, color = Color.White, fontWeight = FontWeight.SemiBold)
+        Text(label, color = Color.Black, fontWeight = FontWeight.SemiBold)
     }
 }
 

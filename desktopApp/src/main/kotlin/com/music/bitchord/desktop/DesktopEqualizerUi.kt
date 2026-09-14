@@ -23,7 +23,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -53,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import com.music.bitchord.playback.EqLayout
 import com.music.bitchord.playback.EqualizerPreset
+import com.music.bitchord.ui.icons.BitChordIcons
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -99,10 +99,7 @@ internal fun DesktopEqualizerDialog(onDismiss: () -> Unit) {
             Switch(
                 checked = enabled,
                 onCheckedChange = DesktopEqualizerSettings::setEnabled,
-                colors = SwitchDefaults.colors(
-                    checkedTrackColor = DesktopAccent,
-                    checkedBorderColor = DesktopAccent,
-                ),
+                colors = desktopSwitchColors(),
             )
         }
 
@@ -256,7 +253,7 @@ private fun WidthChoice(label: String, selected: Boolean, onClick: () -> Unit) {
         )
         if (selected) {
             Spacer(Modifier.width(6.dp))
-            Icon(Icons.Rounded.Check, null, tint = DesktopAccent, modifier = Modifier.size(15.dp))
+            Icon(BitChordIcons.Check, null, tint = DesktopAccent, modifier = Modifier.size(15.dp))
         }
     }
 }
@@ -543,7 +540,7 @@ private fun PresetList(selected: EqualizerPreset, modifier: Modifier = Modifier)
                     modifier = Modifier.weight(1f),
                 )
                 if (chosen) {
-                    Icon(Icons.Rounded.Check, null, tint = DesktopAccent, modifier = Modifier.size(14.dp))
+                    Icon(BitChordIcons.Check, null, tint = DesktopAccent, modifier = Modifier.size(14.dp))
                 }
             }
         }

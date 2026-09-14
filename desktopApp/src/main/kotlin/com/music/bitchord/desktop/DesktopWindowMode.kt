@@ -20,15 +20,23 @@ internal object DesktopWindowMode {
     /** Whether the window is maximized, for the caption button's own glyph. */
     val maximized: StateFlow<Boolean> = _maximized
 
-    fun toggle() {
-        set(if (_placement.value == WindowPlacement.Fullscreen) WindowPlacement.Floating else WindowPlacement.Fullscreen)
-    }
+    /**
+     * The placement the player's full-screen button asks for.
+     *
+     * Maximized on Windows, not Fullscreen: Compose routes Fullscreen through Skiko's layer, which
+     * swaps the rendering surface and there leaves the whole screen white.
+     */
+    private val fillsScreen: WindowPlacement =
+        if (DesktopPlatform.drawsOwnWindowFrame) WindowPlacement.Maximized else WindowPlacement.Fullscreen
+
+    fun toggle() = setFullScreen(!_fullScreen.value)
 
     /**
      * Maximize or restore, which is what the caption button in the corner does and what
      * double-clicking the title bar has always done.
      */
     fun toggleMaximized() {
+        _fullScreen.value = false
         set(if (_placement.value == WindowPlacement.Maximized) WindowPlacement.Floating else WindowPlacement.Maximized)
     }
 
@@ -37,17 +45,23 @@ internal object DesktopWindowMode {
      * the window being put away to the tray.
      */
     fun exit() {
-        if (_placement.value == WindowPlacement.Fullscreen) set(WindowPlacement.Floating)
+        if (_fullScreen.value) setFullScreen(false)
     }
 
     /** Takes the window's word for how it is sitting, rather than this object's. */
     fun adopt(placement: WindowPlacement) {
-        if (placement != _placement.value) set(placement)
+        if (placement == _placement.value) return
+        if (placement == WindowPlacement.Floating) _fullScreen.value = false
+        set(placement)
+    }
+
+    private fun setFullScreen(on: Boolean) {
+        _fullScreen.value = on
+        set(if (on) fillsScreen else WindowPlacement.Floating)
     }
 
     private fun set(placement: WindowPlacement) {
         _placement.value = placement
-        _fullScreen.value = placement == WindowPlacement.Fullscreen
         _maximized.value = placement == WindowPlacement.Maximized
     }
 }

@@ -22,8 +22,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.ManageAccounts
 import androidx.compose.material.icons.rounded.Person
@@ -48,6 +46,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.music.bitchord.ui.icons.BitChordIcons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -184,7 +183,7 @@ internal fun DesktopAccountSelector(
                         )
                     }
                 }
-                item { DesktopSelectorAction(Icons.Rounded.Add, "Add account", onAddAccount) }
+                item { DesktopSelectorAction(BitChordIcons.Plus, "Add account", onAddAccount) }
                 if (accounts.isNotEmpty()) {
                     item {
                         DesktopSelectorAction(Icons.Rounded.ManageAccounts, "Manage accounts") {
@@ -242,8 +241,8 @@ private fun DesktopProfileRow(
             )
         }
         when {
-            managing -> Text(DesktopStrings["sign_out", "Sign out"], color = DesktopAccent, style = MaterialTheme.typography.labelMedium)
-            selected -> Icon(Icons.Rounded.Check, DesktopStrings["selected", "Selected"], tint = DesktopAccent, modifier = Modifier.size(20.dp))
+            managing -> Text(DesktopStrings["sign_out", "Sign out"], color = DesktopDestructive, style = MaterialTheme.typography.labelMedium)
+            selected -> Icon(BitChordIcons.Check, DesktopStrings["selected", "Selected"], tint = DesktopAccent, modifier = Modifier.size(20.dp))
         }
     }
 }

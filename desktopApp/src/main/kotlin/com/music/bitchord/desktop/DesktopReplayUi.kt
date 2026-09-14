@@ -26,8 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,12 +57,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.model.artworkAt
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.music.bitchord.ui.icons.BitChordIcons
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToInt
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 // ── The banner on the Library page ──────────────────────────────────────────
 
@@ -118,7 +117,7 @@ internal fun DesktopReplayBanner(card: DesktopReplayHeroCard?, onClick: () -> Un
             }
             Spacer(Modifier.width(12.dp))
             Icon(
-                Icons.Rounded.ChevronRight,
+                BitChordIcons.ChevronRight,
                 contentDescription = null,
                 tint = Color.White.copy(alpha = 0.85f),
                 modifier = Modifier.size(16.dp),

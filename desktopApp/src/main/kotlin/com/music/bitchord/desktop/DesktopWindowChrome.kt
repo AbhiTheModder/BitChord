@@ -64,7 +64,7 @@ internal object DesktopTitleBarSetting {
 
     internal const val KEY = "window_title_bar"
 
-    private val _enabled = MutableStateFlow(DesktopPersistence().boolean(KEY, true))
+    private val _enabled = MutableStateFlow(DesktopPersistence().boolean(KEY, false))
 
     /** What Settings shows and writes. */
     val enabled: StateFlow<Boolean> = _enabled
@@ -107,11 +107,10 @@ internal fun DesktopTitleBarDragArea(
     }
 }
 
-/** The caption buttons, in the corner they belong in. */
+/** The caption buttons. In the title bar when there is one, otherwise on the toolbar. */
 @Composable
 internal fun DesktopWindowButtons(modifier: Modifier = Modifier) {
-    val enabled by DesktopTitleBarSetting.enabled.collectAsState()
-    if (!DesktopPlatform.drawsOwnWindowFrame || !enabled) return
+    if (!DesktopPlatform.drawsOwnWindowFrame) return
     val actions = LocalDesktopWindowActions.current ?: return
     val maximized by DesktopWindowMode.maximized.collectAsState()
     Row(modifier.height(CAPTION_HEIGHT)) {

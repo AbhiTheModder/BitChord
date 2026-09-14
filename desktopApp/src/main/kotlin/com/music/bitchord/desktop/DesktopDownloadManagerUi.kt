@@ -58,7 +58,7 @@ internal fun DesktopDownloadManagerDialog(onDismiss: () -> Unit) {
                 Text(
                     summary(items.size, failed, busy),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (failed > 0 && !busy) DesktopAccent else DesktopSecondary,
+                    color = if (failed > 0 && !busy) DesktopDestructive else DesktopSecondary,
                 )
             }
             if (busy) {

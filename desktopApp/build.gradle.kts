@@ -107,6 +107,7 @@ kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_21)
     }
+    sourceSets["main"].kotlin.srcDir(rootProject.file("app/src/main/java/com/music/bitchord/ui/icons"))
 }
 
 java {
