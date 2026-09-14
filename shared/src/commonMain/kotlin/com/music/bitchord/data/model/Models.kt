@@ -35,6 +35,17 @@ data class Song(
     val sourceQuality: String? = null,
     /** Explicit-content state from the catalogue; null when unknown. */
     val isExplicit: Boolean? = null,
+    /**
+     * The page, collection, or feed section that put this track in the queue. Separate from
+     * [albumName]: a song can belong to an album while it was played from Search, History, a
+     * playlist, or a shelf. Kept on every queue item so Now Playing can still name that origin
+     * after skips and after a restored queue.
+     */
+    val playbackSource: String? = null,
+    /** Where tapping [playbackSource] should return to. */
+    val playbackSourceType: PlaybackSourceType? = null,
+    /** Browse id for an album, playlist, or other source page. */
+    val playbackSourceId: String? = null,
 )
 
 /** Artwork at a given pixel size. */
@@ -88,6 +99,18 @@ const val NOTIFICATION_ART_PX = 544
 const val PLAYER_ART_PX = 1200
 
 enum class BrowseType { ALBUM, ARTIST, PLAYLIST, OTHER }
+
+/** A queue-level origin shown above Now Playing. */
+enum class PlaybackSourceType {
+    HOME,
+    SEARCH,
+    HISTORY,
+    REPLAY,
+    EXPLORE,
+    BROWSE,
+    SHARED_LINK,
+    QUEUE,
+}
 
 /** A non-track search result: album, artist or playlist. */
 data class BrowseItem(
@@ -169,6 +192,11 @@ data class LibraryPage(
     val likedSongs: List<Song>,
     val librarySongs: List<Song>,
     val shelves: List<HomeShelf>,
+    /**
+     * The continuation behind [likedSongs]' first page, when Liked Music has more tracks than it
+     * held. Consumed by whoever owns the library's lifecycle to finish the sync; never page state.
+     */
+    val likedContinuation: String? = null,
 ) {
     val isEmpty: Boolean
         get() = likedSongs.isEmpty() && librarySongs.isEmpty() && shelves.isEmpty()

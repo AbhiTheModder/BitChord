@@ -17,6 +17,15 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <!--
+      Asked for only when the output picker is first opened, and only on API 31+
+      where it exists. Without it a paired headset is listed by the audio
+      framework under a generic name rather than its own, which turns a list of
+      places to send the music into a list of things called "Bluetooth".
+      Everything else in the app works without it.
+    -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <!--
       In-app updates: handing a downloaded APK to the system installer. The
       per-app "install unknown apps" switch is still the user's to flip; this
       only lets the request reach the installer.
@@ -171,6 +180,19 @@
                 <data android:scheme="http" />
                 <data android:scheme="https" />
                 <data android:host="youtu.be" />
+            </intent-filter>
+
+            <!-- Public Listen Together invites. autoVerify makes a tap open
+                 BitChord directly once the domain publishes its assetlinks
+                 association for the production signing certificate. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="bitchord.kushagrasingh.in"
+                    android:pathPattern="/invite/......" />
             </intent-filter>
 
             <!--
