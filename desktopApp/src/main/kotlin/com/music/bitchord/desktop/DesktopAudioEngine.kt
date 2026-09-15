@@ -11,6 +11,7 @@ import com.music.bitchord.playback.smart.CrossfadeMode
 import com.music.bitchord.playback.smart.TransitionPlan
 import com.music.bitchord.playback.smart.TransitionTrackInfo
 import com.music.bitchord.playback.smart.planTransition
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -106,8 +107,16 @@ class DesktopPlaybackEngine(
 
     fun load(song: Song, playWhenReady: Boolean = true) {
         retryingSongId = null
-        loadInternal(song, playWhenReady)
+        loadInternal(song, playWhenReady, excludedSourceId = refusedSources[song.videoId])
     }
+
+    /**
+     * Sources that handed over a URL they could not actually serve, by track.
+     *
+     * Remembered for the session, not just for the retry: without it every play of the same track
+     * asks the same dead source again and waits for it to fail before falling back.
+     */
+    private val refusedSources = ConcurrentHashMap<String, String>()
 
     private fun loadInternal(
         song: Song,
@@ -182,6 +191,7 @@ class DesktopPlaybackEngine(
         if (retryingSongId != song.videoId) {
             retryingSongId = song.videoId
             DesktopTrackLog.log("could not decode '${song.title}' from ${DesktopMusicSources.sourceNameFor(stream)}: ${failure.message}")
+            stream.sourceId?.let { refusedSources[song.videoId] = it }
             loadInternal(song, playWhenReady, excludedSourceId = stream.sourceId, priorFailure = failure)
         } else {
             _state.value = DesktopPlaybackState(
@@ -899,6 +909,30 @@ class DesktopPlaybackEngine(
         if (wanted == preferFloat) return
         preferFloat = wanted
         commands += Command.Reconfigure
+    }
+
+    /**
+     * The whole signal chain as it stands, for the pipeline readout: what arrived, what decoded it,
+     * whether it is being resampled, what is processing it, and what it is being written to.
+     */
+    internal fun pipeline(): DesktopAudioPipeline {
+        val track = current
+        val decoded = track?.decoder?.outputFormat
+        val out = sink.format
+        return DesktopAudioPipeline(
+            sourceFormat = track?.stream?.format,
+            decoderName = track?.stream?.format?.codec,
+            decodedSampleRateHz = decoded?.sampleRate,
+            decodedChannels = decoded?.channels,
+            outputSampleRateHz = out.sampleRate.takeIf { sink.isOpen },
+            outputChannels = out.channels.takeIf { sink.isOpen },
+            outputIsFloat = out.isFloat.takeIf { sink.isOpen },
+            outputBytesPerSample = out.bytesPerSample.takeIf { sink.isOpen },
+            deviceName = sink.deviceName,
+            bufferBytes = sink.bufferBytes,
+            equalizerEnabled = equalizerEnabled,
+            skipSilence = skipSilenceEnabled,
+        )
     }
 
     /** What the device actually accepted, for the settings screen to report. */

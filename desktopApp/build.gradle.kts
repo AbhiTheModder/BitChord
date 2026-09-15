@@ -39,6 +39,7 @@ val desktopModuleIndexUrl = localProperty("MODULE_INDEX_URL")
 
 // Last.fm signs every request with these, so signing in from inside the app
 // needs them at hand. Supplied locally and never committed, as on Android.
+val listenTogetherServer = localProperty("LISTEN_TOGETHER_SERVER")
 val lastfmApiKey = localProperty("LASTFM_API_KEY")
 val lastfmSecret = localProperty("LASTFM_SECRET")
 
@@ -79,6 +80,8 @@ dependencies {
     implementation("io.ktor:ktor-client-core:3.0.3")
     implementation("io.ktor:ktor-client-cio:3.0.3")
     implementation("io.ktor:ktor-client-content-negotiation:3.0.3")
+    // Listen Together speaks over a WebSocket; the Discord gateway already uses the same engine.
+    implementation("io.ktor:ktor-client-websockets:3.0.3")
     implementation("io.ktor:ktor-serialization-kotlinx-json:3.0.3")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.9.0")
@@ -354,6 +357,9 @@ compose.desktop {
         }
         if (lastfmApiKey.isNotBlank() && lastfmSecret.isNotBlank()) {
             jvmArgs("-Dbitchord.lastfm.key=$lastfmApiKey", "-Dbitchord.lastfm.secret=$lastfmSecret")
+        }
+        if (listenTogetherServer.isNotBlank()) {
+            jvmArgs("-Dbitchord.listentogether.server=$listenTogetherServer")
         }
 
         buildTypes.release.proguard {

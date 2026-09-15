@@ -248,6 +248,12 @@ object DesktopSearchClient {
     private suspend fun post(
         path: String,
         continuation: String? = null,
+        /**
+         * Strips the session, so YouTube Music records the call against no account. Typeahead
+         * asks on every debounced keystroke, and the signed-in endpoint writes each one into the
+         * account's own search history.
+         */
+        anonymous: Boolean = false,
         body: JsonObjectBuilder.() -> Unit,
     ): JsonObject {
         val visitorData = DesktopYouTubeSession.ensureVisitorData()
@@ -268,10 +274,10 @@ object DesktopSearchClient {
             visitorData?.let { header("X-Goog-Visitor-Id", it) }
             // Signed and addressed to one account when there is a session, and nothing at all when
             // there is not.
-            val signed = DesktopYouTubeAuth.headers(DesktopYouTubeAuth.MUSIC_ORIGIN)
+            val signed = if (anonymous) emptyMap() else DesktopYouTubeAuth.headers(DesktopYouTubeAuth.MUSIC_ORIGIN)
             if (signed.isNotEmpty()) {
                 signed.forEach { (name, value) -> header(name, value) }
-            } else {
+            } else if (!anonymous) {
                 DesktopYouTubeAuth.environmentCookie()?.let { header("Cookie", it) }
             }
             setBody(
@@ -287,7 +293,9 @@ object DesktopSearchClient {
                         putJsonObject("user") {
                             put("lockedSafetyMode", false)
                             // Which account in the jar this request is about.
-                            DesktopYouTubeAuth.onBehalfOfUser()?.let { put("onBehalfOfUser", it) }
+                            if (!anonymous) {
+                                DesktopYouTubeAuth.onBehalfOfUser()?.let { put("onBehalfOfUser", it) }
+                            }
                         }
                         // Both of these are sent on every request Android makes.
                         putJsonObject("request") { put("useSsl", true) }
@@ -300,7 +308,7 @@ object DesktopSearchClient {
         if (response.status.value == 401 && DesktopYouTubeAuth.isSignedIn) {
             DesktopTrackLog.log("youtube: the session was refused; continuing as a guest")
             DesktopYouTubeAuth.adopt(null)
-            return post(path, continuation, body)
+            return post(path, continuation, anonymous, body)
         }
         check(response.status.value in 200..299) {
             "YouTube Music returned HTTP ${response.status.value}"
@@ -779,8 +787,8 @@ object DesktopSearchClient {
     suspend fun library(): Result<LibraryPage> = runCatching {
         if (!DesktopYouTubeAuth.isSignedIn) return@runCatching LibraryPage(emptyList(), emptyList(), emptyList())
         coroutineScope {
-            val liked = async { runCatching { songsPaged(LIKED_MUSIC) }.getOrDefault(emptyList()) }
-            val added = async { runCatching { songsPaged(LIBRARY_SONGS) }.getOrDefault(emptyList()) }
+            val liked = async { runCatching { songsPaged(LIKED_MUSIC) }.getOrDefault(emptyList<Song>() to null) }
+            val added = async { runCatching { songsPaged(LIBRARY_SONGS) }.getOrDefault(emptyList<Song>() to null) }
             val shelves = LIBRARY_FEEDS
                 .map { (title, browseId) ->
                     async {
@@ -789,31 +797,76 @@ object DesktopSearchClient {
                 }
                 .awaitAll()
                 .filter { it.items.isNotEmpty() }
-            val likedSongs = liked.await()
+            val (likedSongs, likedTail) = liked.await()
             val likedIds = likedSongs.mapTo(HashSet()) { it.videoId }
             LibraryPage(
                 likedSongs = likedSongs,
                 // Thumbs-up'd tracks are in the library feed too; only what Liked Music does not
                 // already cover earns a second section.
-                librarySongs = added.await().filterNot { it.videoId in likedIds },
+                librarySongs = added.await().first.filterNot { it.videoId in likedIds },
                 shelves = shelves,
+                likedContinuation = likedTail,
             )
         }
     }
 
     /** Every track behind a playlist-shaped browse id, following continuations. */
-    private suspend fun songsPaged(browseId: String): List<Song> {
+    /**
+     * The rows behind a library browse id, and the token for whatever is past the page budget.
+     *
+     * Stopping early is what keeps opening Library quick on a long collection. The caller decides
+     * what to do with the tail: the Liked Music one drains it in the background for its ids alone,
+     * so a track past the budget still reads as liked — see [syncLikedIds].
+     */
+    private suspend fun songsPaged(browseId: String): Pair<List<Song>, String?> {
         val out = LinkedHashMap<String, Song>()
         var response = post("browse") { put("browseId", browseId) }
         var page = 1
+        var pending: String? = null
         while (true) {
             parseBrowseSongs(response, null).forEach { out[it.videoId] = it }
             val token = continuationToken(response)
-            if (token == null || page++ >= MAX_LIBRARY_PAGES) break
+            if (token == null) break
+            if (page++ >= MAX_LIBRARY_PAGES) {
+                pending = token
+                break
+            }
             response = runCatching { post("browse", continuation = token) { put("continuation", token) } }
                 .getOrNull() ?: break
         }
-        return out.values.toList()
+        return out.values.toList() to pending
+    }
+
+    /**
+     * Follows a liked-music continuation chain to exhaustion, handing each page's ids to [onIds].
+     *
+     * Ids only: the songs past the budget are never retained. [seen] stops a chain that points back
+     * at a page already read, which would otherwise loop forever.
+     */
+    suspend fun syncLikedIds(
+        firstToken: String,
+        onIds: suspend (Set<String>) -> Unit,
+        loadPage: suspend (String) -> LikedPage? = ::likedPage,
+    ) {
+        val seen = HashSet<String>()
+        var next: String? = firstToken
+        while (next != null && seen.add(next)) {
+            val page = loadPage(next) ?: return
+            onIds(page.ids)
+            next = page.continuation
+        }
+    }
+
+    /** One page of a liked-music continuation: its ids, and the token after it. */
+    data class LikedPage(val ids: Set<String>, val continuation: String?)
+
+    private suspend fun likedPage(token: String): LikedPage? {
+        val response = runCatching { post("browse", continuation = token) { put("continuation", token) } }
+            .getOrNull() ?: return null
+        return LikedPage(
+            parseBrowseSongs(response, null).mapTo(HashSet()) { it.videoId },
+            continuationToken(response),
+        )
     }
 
     /** Every saved card behind a library feed, following continuations. */
@@ -890,7 +943,7 @@ object DesktopSearchClient {
         val response = post("browse") { put("browseId", browseId) }
         val page = parseArtistPage(response)
         val everything = page.moreSongsBrowseId
-            ?.let { runCatching { songsPaged(it) }.getOrNull() }
+            ?.let { runCatching { songsPaged(it) }.getOrNull()?.first }
             .orEmpty()
         if (everything.isEmpty()) page else page.copy(songs = everything)
     }
@@ -1204,6 +1257,18 @@ object DesktopSearchClient {
      * The typeahead list YouTube Music's own search box shows for a half-typed query — query
      * strings, not results.
      */
+    /**
+     * Playable rows for the half-typed query, shown beside the text completions.
+     *
+     * Anonymous on purpose — see [post]. Videos are left out: the dropdown is for picking a track,
+     * and a video row there is a second copy of one already listed.
+     */
+    suspend fun searchTypeahead(input: String): Result<List<SearchResult>> = runCatching {
+        require(input.isNotBlank()) { "Search query cannot be empty" }
+        val response = post("search", anonymous = true) { put("query", input.trim()) }
+        parseSearch(response, SearchFilter.ALL).filterNot { it is SearchResult.Browse && it.item.browseId.isBlank() }
+    }
+
     suspend fun searchSuggestions(input: String): Result<List<String>> = runCatching {
         parseSearchSuggestions(post("music/get_search_suggestions") { put("input", input) })
     }

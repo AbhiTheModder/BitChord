@@ -164,6 +164,7 @@
     <string name="hebrew">Hébreu</string>
     <string name="italian">Italien</string>
     <string name="turkish">Turc</string>
+    <string name="thai">Thaï</string>
     <string name="show_all">Tout afficher</string>
     <string name="grid_view">Grille</string>
     <string name="list_view">Liste</string>
@@ -221,7 +222,6 @@
     <string name="dark">Sombre</string>
     <string name="full_screen_cover_art_subtitle">Étend la pochette jusqu\'aux bords du lecteur au lieu d\'un carré</string>
     <string name="animated_cover_art_subtitle">Lit la vidéo en boucle que proposent certaines sorties au lieu d\'une pochette fixe</string>
-    <string name="miscellaneous_footer">Une fois activé, fermer l\'application depuis les applications récentes arrête aussi la musique.</string>
     <string name="dont_repeat_songs_subtitle">La lecture automatique ne proposera pas une chanson déjà jouée ou suggérée pendant cette session</string>
     <string name="download_quality_subtitle">%1$s par piste, quelle que soit la connexion</string>
     <string name="filter_non_music_audio">Filtrer l\'audio non musical</string>
@@ -256,6 +256,12 @@
     <string name="buttons">Boutons</string>
     <string name="clear_name">Effacer le nom</string>
     <string name="close_lyrics">Fermer les paroles</string>
+    <string name="translate_lyrics">Traduire les paroles</string>
+    <string name="show_original_lyrics">Afficher les paroles originales</string>
+    <string name="translating_lyrics_to">Traduction en %1$s…</string>
+    <string name="lyrics_translated_to">Traduit en %1$s</string>
+    <string name="lyrics_already_in_language">Ces paroles sont déjà en %1$s</string>
+    <string name="lyrics_translation_unavailable">La traduction est indisponible pour le moment</string>
     <string name="connect_account_first">Connectez d\'abord un compte</string>
     <string name="connected_presence_off">Connecté, présence désactivée</string>
     <string name="copy_log">Copier le journal</string>
@@ -639,4 +645,45 @@
         <item>Les paroles prennent forme</item>
         <item>Presque trouvé les mots</item>
     </string-array>
+
+    <!-- Listen together -->
+    <string name="listen_together">Écouter ensemble</string>
+    <string name="listen_together_subtitle">Partage un code et écoutez la même musique, en même temps</string>
+    <string name="listen_together_in_party">Dans une session · %1$s</string>
+    <string name="listen_together_sign_in_footer">L’écoute commune nécessite un compte, pour que chacun puisse voir qui d’autre participe.</string>
+    <string name="listen_together_server">Serveur de session</string>
+    <string name="listen_together_server_online">En ligne · %1$d ms</string>
+    <string name="listen_together_server_offline">Injoignable pour le moment</string>
+    <string name="listen_together_server_checking">Vérification…</string>
+    <string name="listen_together_server_unknown">Appuie pour vérifier</string>
+    <string name="listen_together_custom_server">Utiliser ton propre serveur</string>
+    <string name="listen_together_custom_server_footer">Laisse ce champ vide pour utiliser le serveur intégré. Si tu héberges ta propre copie, tout le monde dans la session doit pointer vers le même.</string>
+    <string name="listen_together_using_builtin">Serveur intégré utilisé</string>
+    <string name="listen_together_create">Créer une session</string>
+    <string name="listen_together_create_subtitle">Obtiens un code à partager avec tes amis</string>
+    <string name="listen_together_create_footer">Tu reçois un code de six caractères. Quiconque l’a peut rejoindre, jusqu’à cinq appareils, le tien compris.</string>
+    <string name="listen_together_join">Rejoindre une session</string>
+    <string name="listen_together_join_action">Rejoindre</string>
+    <string name="listen_together_code_hint">Six lettres ou chiffres</string>
+    <string name="listen_together_code">Code de session</string>
+    <string name="listen_together_code_footer">Lis-le à voix haute ou envoie-le. Les lettres O et I ne sont pas utilisées, un « o » est donc toujours un zéro.</string>
+    <string name="copy_code">Copier le code</string>
+    <string name="listen_together_share_text">Écoute avec moi sur BitChord — code de session %1$s</string>
+    <string name="listen_together_now_playing">Lecture en cours</string>
+    <string name="listen_together_nothing_playing">Rien en lecture pour l’instant</string>
+    <string name="listen_together_listening">À l’écoute · %1$d sur %2$d</string>
+    <string name="listen_together_members_footer">Une session accueille %1$d appareils. Tous ceux qui y sont peuvent contrôler la musique.</string>
+    <string name="listen_together_you">Toi</string>
+    <string name="listen_together_host">Hôte</string>
+    <string name="listen_together_away">Absent — sa place est gardée</string>
+    <string name="listen_together_leave">Quitter la session</string>
+    <string name="listen_together_leave_subtitle">Les autres continuent d’écouter</string>
+    <string name="listen_together_reconnecting">Reconnexion…</string>
+    <string name="listen_together_syncing_clock">Mesure de l’horloge…</string>
+    <string name="listen_together_in_sync">Synchronisé · %1$d ms aller-retour</string>
+    <string name="listen_together_jam">Jam de %1$s</string>
+    <string name="listen_together_jam_unnamed">Écoute commune</string>
+    <string name="listen_together_open">Écouter ensemble</string>
+    <string name="listen_together_open_count">Écoute commune · %1$d</string>
+    <string name="miscellaneous_footer">Une fois activé, fermer l\'application depuis les applications récentes arrête aussi la musique.</string>
 </resources>

@@ -386,6 +386,10 @@ object DesktopLyricsClient {
     private const val PAXSENIX = "PaxSenix"
     private const val SIMP = "SimpMusic"
     private const val KUGOU = "KuGou"
+    /** "[Official Video]", "(Lyrics)" and the rest of what a upload title carries. */
+    private val BRACKETED = Regex("""[\[(][^\])]*[\])]""")
+    private val SPACES = Regex("""\s+""")
+
     private const val GENIUS = "Genius"
     private const val BINI = "BiniLyrics"
     private const val UNISON = "Unison"
@@ -619,13 +623,36 @@ object DesktopLyricsClient {
         return wanted.mapNotNull { byName[it] }
     }
 
-    /** Genius, scraped. */
+    /**
+     * Genius, scraped.
+     *
+     * A YouTube title is often the whole credit — "GEJLON - USA [OFFICIAL MUSIC VIDEO]" — so the
+     * artist and the song are pulled back apart and asked for in several shapes, first match wins.
+     */
     private suspend fun genius(ask: Ask): List<DesktopLyricLine>? = withContext(Dispatchers.IO) {
         val title = cleanGeniusQuery(ask.title)
         val artist = cleanGeniusQuery(ask.artist)
-        val url = geniusSongUrl(title, artist) ?: return@withContext null
-        val html = get(url, mapOf("Accept" to "text/html,application/xhtml+xml")) ?: return@withContext null
-        parseGenius(html)?.takeIf(List<DesktopLyricLine>::isNotEmpty)
+        for ((askTitle, askArtist) in geniusAttempts(title, artist)) {
+            val url = geniusSongUrl(askTitle, askArtist) ?: continue
+            val html = get(url, mapOf("Accept" to "text/html,application/xhtml+xml")) ?: continue
+            parseGenius(html)?.takeIf(List<DesktopLyricLine>::isNotEmpty)?.let { return@withContext it }
+        }
+        null
+    }
+
+    /** The queries to try for one track, in order, without repeats. */
+    internal fun geniusAttempts(title: String, artist: String): List<Pair<String, String>> {
+        val separator = title.indexOf(" - ")
+        val leading = if (separator > 0) title.take(separator).trim() else ""
+        val trailing = if (separator > 0) title.drop(separator + 3).trim() else title
+        val withoutBrackets = trailing.replace(BRACKETED, " ").replace(SPACES, " ").trim()
+        val credited = leading.ifBlank { artist }
+        return listOf(
+            trailing to credited,
+            withoutBrackets to credited,
+            title to artist,
+            withoutBrackets to "",
+        ).filter { (askTitle, _) -> askTitle.isNotBlank() }.distinct()
     }
 
     private suspend fun geniusSongUrl(title: String, artist: String): String? {

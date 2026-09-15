@@ -128,7 +128,7 @@ data class PartyMembership(
 )
 
 @Serializable
-internal data class JoinRequest(
+data class JoinRequest(
     val userId: String,
     val deviceId: String,
     val displayName: String,
@@ -136,7 +136,7 @@ internal data class JoinRequest(
 )
 
 @Serializable
-internal data class ApiError(
+data class ApiError(
     @SerialName("error") val code: String = "",
     val message: String = "",
 )

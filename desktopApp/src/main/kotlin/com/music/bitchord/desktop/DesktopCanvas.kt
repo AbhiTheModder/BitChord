@@ -107,10 +107,15 @@ object DesktopCanvasClient {
     // worth of requests off the wire at once.
     private val gate = Mutex()
 
-    /** The canvas for [song], or null when there is not one. Never throws. */
+    /**
+     * The canvas for [song], or null when there is not one. Never throws.
+     *
+     * Only a local file with no catalogue identity is answered as a miss without a request. A
+     * download carries both a videoId and a local path, and skipping on the path alone is what
+     * left downloaded tracks with no canvas.
+     */
     suspend fun lookup(song: Song): DesktopCanvasArtwork? {
-        // A local file has no catalogue identity worth searching on.
-        if (song.localUri != null || song.localPath != null) return null
+        if (song.videoId.isBlank() && (song.localUri != null || song.localPath != null)) return null
         val title = song.title.cleanedForCanvas()
         val artist = song.artist.cleanedForCanvas()
         if (title.isBlank() || artist.isBlank()) return null

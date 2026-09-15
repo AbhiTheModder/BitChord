@@ -165,6 +165,7 @@
     <string name="hebrew">Hebraico</string>
     <string name="italian">Italiano</string>
     <string name="turkish">Turco</string>
+    <string name="thai">Tailandês</string>
     <string name="show_all">Ver tudo</string>
     <string name="grid_view">Grade</string>
     <string name="list_view">Lista</string>
@@ -222,7 +223,6 @@
     <string name="dark">Escuro</string>
     <string name="full_screen_cover_art_subtitle">Estende a capa até as bordas do player em vez de um quadrado</string>
     <string name="animated_cover_art_subtitle">Reproduz o vídeo em loop que alguns lançamentos trazem em vez de uma capa estática</string>
-    <string name="miscellaneous_footer">Quando ativado, fechar o app pela tela de apps recentes também interrompe a reprodução de música.</string>
     <string name="dont_repeat_songs_subtitle">A reprodução automática não sugerirá uma música já tocada ou sugerida nesta sessão</string>
     <string name="download_quality_subtitle">%1$s por faixa, independentemente da conexão</string>
     <string name="filter_non_music_audio">Filtrar áudio não musical</string>
@@ -257,6 +257,12 @@
     <string name="buttons">Botões</string>
     <string name="clear_name">Limpar nome</string>
     <string name="close_lyrics">Fechar letras</string>
+    <string name="translate_lyrics">Traduzir letra</string>
+    <string name="show_original_lyrics">Mostrar letra original</string>
+    <string name="translating_lyrics_to">Traduzindo para %1$s…</string>
+    <string name="lyrics_translated_to">Traduzida para %1$s</string>
+    <string name="lyrics_already_in_language">Esta letra já está em %1$s</string>
+    <string name="lyrics_translation_unavailable">A tradução não está disponível agora</string>
     <string name="connect_account_first">Conecte uma conta primeiro</string>
     <string name="connected_presence_off">Conectado, presença desligada</string>
     <string name="copy_log">Copiar log</string>
@@ -643,4 +649,45 @@
         <item>As letras estão se formando</item>
         <item>Quase encontrei as palavras</item>
     </string-array>
+
+    <!-- Listen together -->
+    <string name="listen_together">Ouvir junto</string>
+    <string name="listen_together_subtitle">Compartilhe um código e ouçam a mesma música, em sincronia</string>
+    <string name="listen_together_in_party">Em uma festa · %1$s</string>
+    <string name="listen_together_sign_in_footer">Ouvir junto precisa de uma conta, para que todos na festa vejam quem mais está ouvindo.</string>
+    <string name="listen_together_server">Servidor da festa</string>
+    <string name="listen_together_server_online">Online · %1$d ms</string>
+    <string name="listen_together_server_offline">Não está acessível agora</string>
+    <string name="listen_together_server_checking">Verificando…</string>
+    <string name="listen_together_server_unknown">Toque para verificar</string>
+    <string name="listen_together_custom_server">Usar seu próprio servidor</string>
+    <string name="listen_together_custom_server_footer">Deixe vazio para usar o servidor integrado. Se você roda sua própria cópia, todos na festa precisam apontar para a mesma.</string>
+    <string name="listen_together_using_builtin">Usando o servidor integrado</string>
+    <string name="listen_together_create">Criar uma festa</string>
+    <string name="listen_together_create_subtitle">Receba um código para compartilhar com amigos</string>
+    <string name="listen_together_create_footer">Você recebe um código de seis caracteres. Qualquer pessoa com ele pode entrar, até cinco dispositivos incluindo o seu.</string>
+    <string name="listen_together_join">Entrar em uma festa</string>
+    <string name="listen_together_join_action">Entrar</string>
+    <string name="listen_together_code_hint">Seis letras ou números</string>
+    <string name="listen_together_code">Código da festa</string>
+    <string name="listen_together_code_footer">Leia em voz alta ou envie. O e I não são usados, então um “ó” é sempre zero.</string>
+    <string name="copy_code">Copiar código</string>
+    <string name="listen_together_share_text">Ouça comigo no BitChord — código da festa %1$s</string>
+    <string name="listen_together_now_playing">Tocando agora</string>
+    <string name="listen_together_nothing_playing">Nada tocando ainda</string>
+    <string name="listen_together_listening">Ouvindo · %1$d de %2$d</string>
+    <string name="listen_together_members_footer">Uma festa cabe %1$d dispositivos. Qualquer um nela pode controlar a música.</string>
+    <string name="listen_together_you">Você</string>
+    <string name="listen_together_host">Anfitrião</string>
+    <string name="listen_together_away">Ausente — o lugar está guardado</string>
+    <string name="listen_together_leave">Sair da festa</string>
+    <string name="listen_together_leave_subtitle">Os outros continuam ouvindo</string>
+    <string name="listen_together_reconnecting">Reconectando…</string>
+    <string name="listen_together_syncing_clock">Medindo o relógio…</string>
+    <string name="listen_together_in_sync">Em sincronia · %1$d ms de ida e volta</string>
+    <string name="listen_together_jam">Jam de %1$s</string>
+    <string name="listen_together_jam_unnamed">Ouvindo junto</string>
+    <string name="listen_together_open">Ouvir junto</string>
+    <string name="listen_together_open_count">Ouvindo junto · %1$d</string>
+    <string name="miscellaneous_footer">Quando ativado, fechar o app pela tela de apps recentes também interrompe a reprodução de música.</string>
 </resources>

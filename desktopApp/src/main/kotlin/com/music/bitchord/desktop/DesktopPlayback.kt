@@ -104,7 +104,7 @@ data class DesktopStreamFormat(
         }
 
     /** The codec under its usual name rather than its container's or FFmpeg's. */
-    private val codecLabel: String?
+    internal val codecLabel: String?
         get() = when (val name = codecName) {
             null -> null
             "opus" -> "Opus"

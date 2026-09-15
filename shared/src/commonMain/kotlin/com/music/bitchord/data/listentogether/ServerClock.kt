@@ -1,6 +1,5 @@
 package com.music.bitchord.data.listentogether
 
-import android.os.SystemClock
 
 /**
  * This device's offset from the party server's clock.
@@ -27,14 +26,22 @@ import android.os.SystemClock
  * of discarding it. A short burst of pings on connect therefore converges
  * faster than a long series would.
  *
- * The local half of every sample is [SystemClock.elapsedRealtime], not
+ * The local half of every sample is a monotonic reading, not
  * `System.currentTimeMillis`. The wall clock is stepped — by the network
  * operator, by the user setting the time, by a DST change — and any step lands
  * directly in the offset and moves this device's playhead relative to everyone
  * else's. `elapsedRealtime` is monotonic since boot and counts through deep
  * sleep, which is exactly the timeline a playhead should be measured against.
  */
-class ServerClock {
+class ServerClock(
+    /**
+     * This device's monotonic milliseconds. Injected because the right source differs per platform:
+     * Android wants `SystemClock.elapsedRealtime`, which counts through deep sleep, and a desktop
+     * has `System.nanoTime`. Both are monotonic, which is the whole requirement — see the note on
+     * the wall clock above.
+     */
+    private val localNowMs: () -> Long = { System.nanoTime() / 1_000_000L },
+) {
 
     private data class Sample(val offsetMs: Long, val roundTripMs: Long, val takenAtMs: Long)
 
@@ -69,7 +76,7 @@ class ServerClock {
     }
 
     /** The server's clock, read from here. Null until the first pong lands. */
-    fun serverNowMs(): Long? = offsetMs?.let { SystemClock.elapsedRealtime() + it }
+    fun serverNowMs(): Long? = offsetMs?.let { localNowMs() + it }
 
     @Synchronized
     fun reset() {
@@ -78,9 +85,10 @@ class ServerClock {
         roundTripMs = 0
     }
 
-    companion object {
-        fun localNowMs(): Long = SystemClock.elapsedRealtime()
+    /** This device's monotonic reading, for stamping a ping on its way out. */
+    fun nowMs(): Long = localNowMs()
 
+    companion object {
         private const val WINDOW = 12
         private const val SAMPLE_TTL_MS = 120_000L
     }

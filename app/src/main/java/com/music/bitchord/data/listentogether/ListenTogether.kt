@@ -1,6 +1,7 @@
 package com.music.bitchord.data.listentogether
 
 import android.content.Context
+import android.os.SystemClock
 import android.content.SharedPreferences
 import com.music.bitchord.BitChordApplication
 import com.music.bitchord.BuildConfig
@@ -164,7 +165,7 @@ object ListenTogether {
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val clock = ServerClock()
+    private val clock = ServerClock(SystemClock::elapsedRealtime)
 
     private val _state = MutableStateFlow(State())
     val state: StateFlow<State> = _state.asStateFlow()
@@ -211,7 +212,7 @@ object ListenTogether {
                 return@launch
             }
             _serverStatus.value = ServerStatus(Health.CHECKING)
-            val startedAt = ServerClock.localNowMs()
+            val startedAt = clock.nowMs()
             val ok = runCatching {
                 http.get("$base/healthz") {
                     // Generous on purpose: a sleeping free instance answers in
@@ -226,7 +227,7 @@ object ListenTogether {
             }
             _serverStatus.value = ServerStatus(
                 health = if (ok) Health.ONLINE else Health.OFFLINE,
-                latencyMs = ServerClock.localNowMs() - startedAt,
+                latencyMs = clock.nowMs() - startedAt,
             )
         }
     }
@@ -465,7 +466,9 @@ object ListenTogether {
         val serverNow = clock.serverNowMs() ?: return playback.effectivePositionMs
         val elapsed = (serverNow - playback.anchorMs).coerceAtLeast(0)
         val position = playback.positionMs + elapsed
-        val duration = playback.track.durationMs
+        // Hoisted: PartyTrack lives in :shared, and Kotlin will not smart-cast a public nullable
+        // property declared in another module.
+        val duration = playback.track?.durationMs
         return if (duration != null) minOf(position, duration) else position
     }
 
@@ -558,7 +561,7 @@ object ListenTogether {
     }
 
     private suspend fun DefaultClientWebSocketSession.ping() {
-        val sentAt = ServerClock.localNowMs()
+        val sentAt = clock.nowMs()
         val frame = buildJsonObject {
             put("type", "ping")
             put("clientMs", sentAt)
@@ -588,7 +591,7 @@ object ListenTogether {
     }
 
     private fun onFrame(text: String) {
-        val received = ServerClock.localNowMs()
+        val received = clock.nowMs()
         val frame = runCatching { json.parseToJsonElement(text).jsonObject }.getOrNull() ?: return
         when (frame["type"]?.jsonPrimitive?.content) {
             "welcome" -> {

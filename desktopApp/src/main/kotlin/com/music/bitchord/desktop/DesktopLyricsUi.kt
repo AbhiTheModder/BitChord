@@ -1,5 +1,6 @@
 package com.music.bitchord.desktop
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
@@ -12,6 +13,9 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.animateScrollBy
@@ -40,8 +44,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.FloatState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.FloatState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableLongState
 import androidx.compose.runtime.collectAsState
@@ -247,6 +251,9 @@ private fun LyricsBody(
 }
 
 /** The one line being sung, on a strip above the scrubber. */
+/** What the strip is showing: which line, and the words for it. */
+private data class LyricStripState(val index: Int, val line: DesktopLyricLine?, val text: String)
+
 @Composable
 internal fun DesktopCurrentLyricLine(
     lyrics: DesktopLyrics?,
@@ -301,7 +308,8 @@ private fun SungLyricStrip(
             )
             Spacer(Modifier.width(8.dp))
             Text(
-                DesktopStrings["d_lyrics_available_click_to_view", "Lyrics available • Click to view"],
+                // Just the word, as Android now shows: the strip is already the thing to click.
+                DesktopStrings["open_lyrics", "Lyrics"],
                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.5.sp, fontWeight = FontWeight.Medium),
                 color = Color.White.copy(alpha = 0.85f),
                 maxLines = 1,
@@ -336,24 +344,42 @@ private fun SungLyricStrip(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
-            .padding(vertical = 4.dp)
-            .graphicsLayer {
+            .padding(vertical = 4.dp),
+    ) {
+        // The line slides and fades between one and the next rather than being swapped in a frame.
+        AnimatedContent(
+            targetState = LyricStripState(index, current, text),
+            transitionSpec = {
+                (fadeIn(tween(220)) + slideInVertically(tween(260)) { it / 3 }) togetherWith
+                    (fadeOut(tween(180)) + slideOutVertically(tween(260)) { -it / 3 })
+            },
+            modifier = Modifier.weight(1f, fill = false),
+            label = "lyricStrip",
+        ) { state ->
+        val itemIndex = state.index
+        val itemLine = state.line
+        val instrumental = itemLine == null || itemLine.isGap
+        val text = state.text
+        val current = itemLine
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            // Each rendered instance fades on its own timing. Shared on the Row, the outgoing line
+            // snapped back to full brightness the moment the next became current.
+            modifier = Modifier.graphicsLayer {
                 if (instrumental) {
                     // Nothing is being sung; hold it steady rather than fading.
                     alpha = 0.5f
                     return@graphicsLayer
                 }
-                // A line fades out as its own time runs down rather than being swapped for the next
-                // one in a single frame.
-                val start = lines.getOrNull(index)?.timeMs ?: 0L
-                val end = lines.getOrNull(index + 1)?.timeMs
+                val start = itemLine?.timeMs ?: 0L
+                val end = lines.getOrNull(itemIndex + 1)?.timeMs
                     ?: durationMs.takeIf { it > start }
                     ?: (start + 4_000L)
                 val fade = ((end - start) * LYRIC_FADE_FRACTION)
                     .coerceIn(LYRIC_FADE_MIN_MS, LYRIC_FADE_MAX_MS)
                 alpha = 0.78f * ((end - clock.longValue).toFloat() / fade).coerceIn(0f, 1f)
             },
-    ) {
+        ) {
         if (instrumental) {
             Icon(BitChordIcons.MusicNote, null, tint = Color.White, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(6.dp))
@@ -382,6 +408,8 @@ private fun SungLyricStrip(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
             )
+        }
+        }
         }
         Spacer(Modifier.width(6.dp))
         // Says the strip leads somewhere, which is most of what makes it a way in to the panel

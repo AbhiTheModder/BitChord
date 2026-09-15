@@ -40,10 +40,25 @@ internal class DesktopAudioSink {
             if (requested.channels != 2) add(requested.copy(channels = 2, bytesPerSample = 2, isFloat = false))
         }
 
-        val accepted = ladder.firstOrNull { AudioSystem.isLineSupported(infoFor(it)) }
+        // The chosen device, when there is one and it is still plugged in; otherwise whatever the
+        // system calls the default.
+        val mixer = DesktopAudioDevices.mixerFor(DesktopAudioDevices.selected.value)
+        val supports: (DesktopPcmFormat) -> Boolean = { candidate ->
+            if (mixer == null) {
+                AudioSystem.isLineSupported(infoFor(candidate))
+            } else {
+                runCatching { mixer.isLineSupported(infoFor(candidate)) }.getOrDefault(false)
+            }
+        }
+        val accepted = ladder.firstOrNull(supports)
             ?: error("no audio line for any supported format")
 
-        val opened = AudioSystem.getLine(infoFor(accepted)) as SourceDataLine
+        val opened = if (mixer == null) {
+            AudioSystem.getLine(infoFor(accepted)) as SourceDataLine
+        } else {
+            mixer.getLine(infoFor(accepted)) as SourceDataLine
+        }
+        openedOn = mixer?.mixerInfo?.name
         // Roughly a fifth of a second in the device's hands.
         opened.open(accepted.toAudioFormat(), accepted.byteRate / 5)
         opened.start()
@@ -51,6 +66,24 @@ internal class DesktopAudioSink {
         format = accepted
         accepted
     }
+
+    /**
+     * What the samples are actually being written to.
+     *
+     * The mixer's own name, not `lineInfo`, which describes the line's capabilities — "interface
+     * SourceDataLine supporting 36 audio formats" is not a device.
+     */
+    val deviceName: String?
+        get() = runCatching {
+            line?.let { openedOn ?: AudioSystem.getMixer(null).mixerInfo?.name?.takeIf(String::isNotBlank) }
+        }.getOrNull()
+
+    /** The mixer this line was actually opened on, when it was not the system default. */
+    private var openedOn: String? = null
+
+    /** How much audio the device is holding, in bytes; 0 before the line is open. */
+    val bufferBytes: Int
+        get() = runCatching { line?.bufferSize ?: 0 }.getOrDefault(0)
 
     /** Writes [count] interleaved samples, blocking until the device takes them. */
     fun write(samples: FloatArray, count: Int): Int {

@@ -14,6 +14,15 @@ import androidx.compose.runtime.setValue
  */
 @Stable
 internal class DesktopOverlays {
+
+    /** The signal-chain readout behind the player's quality badge. */
+    var pipeline by mutableStateOf(false)
+
+    /** Which device playback is sent to. */
+    var audioOutput by mutableStateOf(false)
+
+    /** The party this device is listening with. */
+    var listenTogether by mutableStateOf(false)
     var songMenu by mutableStateOf(false)
     var downloadManager by mutableStateOf(false)
     var replay by mutableStateOf(false)
