@@ -347,6 +347,9 @@ private const val PLAYLISTS_SHELF = "Playlists"
 private const val STATS_MAX_DELTA_MS = 15_000L
 private const val SCROBBLE_THRESHOLD_MS = 180_000L
 
+/** Used for tracking restart of the current song when previous button is pressed. */
+private const val BACK_RESTARTS_AFTER_MS = 10_000L
+
 @Composable
 private fun desktopTypography(): Typography {
     val sfProDisplay = FontFamily(
@@ -958,6 +961,15 @@ fun BitChordDesktopApp() {
     }
 
     fun playPrevious() {
+        val positionMs = playbackEngine.state.value.positionMs
+
+        // After 10 seconds, Previous restarts the current song.
+        if (positionMs > BACK_RESTARTS_AFTER_MS) {
+            playbackEngine.seekTo(0L)
+            return
+        }
+
+        // Within 10 seconds, Previous goes to the previous song in queue.
         if (!liveQueue.hasPrevious) return
         liveQueue = liveQueue.previous()
         playCurrent()
