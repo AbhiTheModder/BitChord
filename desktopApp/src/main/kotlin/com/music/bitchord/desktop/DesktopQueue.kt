@@ -102,10 +102,13 @@ internal data class DesktopQueue(
         /** Completed entries retained behind the current song. */
         const val MAX_HISTORY = 25
 
-        /** Starts a new queue at the row the listener picked, dropping the rows above it. */
+        /** Keeps the queue at the row the listener picked, dropping the rows above it. */
         fun startingAt(songs: List<Song>, startIndex: Int): DesktopQueue {
             if (songs.isEmpty()) return DesktopQueue()
-            return DesktopQueue(songs.drop(startIndex.coerceIn(songs.indices)), index = 0)
+            return DesktopQueue(
+                songs,
+                index = startIndex.coerceIn(songs.indices)
+            )
         }
 
         /**

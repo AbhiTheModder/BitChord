@@ -705,8 +705,7 @@ fun BitChordDesktopApp() {
         liveQueue = if (shuffle) {
             DesktopQueue.shuffledStartingAt(playable, startIndex)
         } else {
-            // Rows above the one picked have not played, so they are not history and do not belong
-            // behind the needle.
+            // Keep the complete queue so Previous can navigate to the tracks before the selected one.
             DesktopQueue.startingAt(playable, startIndex)
         }
         preShuffleOrder = if (shuffle) playable.map(Song::videoId) else emptyList()
