@@ -2025,6 +2025,8 @@ fun BitChordDesktopApp() {
                         compact = compact,
                         song = selectedSong,
                         isPlaying = playback.isPlaying,
+                        previousEnabled = liveQueue.hasPrevious ||
+                            playback.positionMs > BACK_RESTARTS_AFTER_MS,
                         volume = playback.volume,
                         shuffle = shuffle,
                         repeatMode = repeatMode,
@@ -2131,6 +2133,7 @@ fun BitChordDesktopApp() {
                             isPlaying = playback.isPlaying,
                             progressMs = playback.positionMs,
                             durationMs = playback.durationMs,
+                            hasPrevious = liveQueue.hasPrevious,
                             error = playback.error,
                             streamFormat = playback.streamFormat,
                             isResolving = playback.isLoading,
@@ -2898,6 +2901,7 @@ private fun DesktopTopBar(
     compact: Boolean,
     song: Song?,
     isPlaying: Boolean,
+    previousEnabled: Boolean,
     volume: Float,
     shuffle: Boolean,
     repeatMode: DesktopRepeatMode,
@@ -2953,8 +2957,16 @@ private fun DesktopTopBar(
             DesktopToolbarButton(onClick = { onShuffleChange(!shuffle) }) {
                 Icon(BitChordIcons.Shuffle, DesktopStrings["shuffle", "Shuffle"], tint = if (shuffle) DesktopAccent else DesktopSecondary)
             }
-            DesktopToolbarButton(onClick = onPrevious) {
-                Icon(Icons.Rounded.FastRewind, DesktopStrings["widget_previous", "Previous"], modifier = Modifier.size(20.dp))
+            DesktopToolbarButton(
+                onClick = onPrevious,
+                enabled = previousEnabled,
+            ) {
+                Icon(
+                    Icons.Rounded.FastRewind,
+                    DesktopStrings["widget_previous", "Previous"],
+                    tint = if (previousEnabled) Color.White else DesktopSecondary.copy(alpha = 0.45f),
+                    modifier = Modifier.size(20.dp),
+                )
             }
             DesktopToolbarButton(onClick = onPlayPause) {
                 Icon(
@@ -3075,6 +3087,7 @@ private fun DesktopTopBar(
 @Composable
 private fun DesktopToolbarButton(
     onClick: () -> Unit,
+    enabled: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     Box(
@@ -3082,7 +3095,10 @@ private fun DesktopToolbarButton(
             .size(36.dp)
             .clip(CircleShape)
             .desktopHoverWash()
-            .clickable(onClick = onClick),
+            .clickable(
+                enabled = enabled,
+                onClick = onClick,
+            ),
         contentAlignment = Alignment.Center,
     ) {
         content()
@@ -6163,6 +6179,7 @@ private fun DesktopNowPlayingPage(
     isPlaying: Boolean,
     progressMs: Long,
     durationMs: Long,
+    hasPrevious: Boolean,
     error: String?,
     streamFormat: DesktopStreamFormat?,
     isResolving: Boolean,
@@ -6235,6 +6252,7 @@ private fun DesktopNowPlayingPage(
                 isPlaying = isPlaying,
                 progressMs = progressMs,
                 durationMs = durationMs,
+                hasPrevious = hasPrevious,
                 error = error,
                 streamFormat = streamFormat,
                 isResolving = isResolving,
@@ -6441,7 +6459,20 @@ private fun DesktopNowPlayingPage(
                             IconButton(onClick = { onShuffleChange(!shuffle) }) {
                                 Icon(BitChordIcons.Shuffle, DesktopStrings["shuffle", "Shuffle"], tint = if (shuffle) Color.White else Color.White.copy(alpha = 0.75f))
                             }
-                            IconButton(onClick = onPrevious) { Icon(Icons.Rounded.FastRewind, DesktopStrings["widget_previous", "Previous"]) }
+                            IconButton(
+                                onClick = onPrevious,
+                                enabled = hasPrevious || progressMs > BACK_RESTARTS_AFTER_MS,
+                            ) {
+                                Icon(
+                                    Icons.Rounded.FastRewind,
+                                    DesktopStrings["widget_previous", "Previous"],
+                                    tint = if (hasPrevious || progressMs > BACK_RESTARTS_AFTER_MS) {
+                                        Color.White
+                                    } else {
+                                        DesktopSecondary.copy(alpha = 0.45f)
+                                    },
+                                )
+                            }
                             IconButton(onClick = onPlayPause, modifier = Modifier.size(58.dp).clip(CircleShape).background(Color.White)) {
                                 Icon(if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play", tint = Color.Black, modifier = Modifier.size(30.dp))
                             }
@@ -6488,7 +6519,21 @@ private fun DesktopNowPlayingPage(
                                 onRevertToOriginal = onRevertToOriginal.takeIf { substituted && !pinnedToOriginal },
                                 onUpgradeQuality = onUpgradeQuality.takeIf { pinnedToOriginal },
                             )
-                            IconButton(onClick = onPrevious) { Icon(Icons.Rounded.FastRewind, DesktopStrings["widget_previous", "Previous"], modifier = Modifier.size(32.dp)) }
+                            IconButton(
+                                onClick = onPrevious,
+                                enabled = hasPrevious || progressMs > BACK_RESTARTS_AFTER_MS,
+                            ) {
+                                Icon(
+                                    Icons.Rounded.FastRewind,
+                                    DesktopStrings["widget_previous", "Previous"],
+                                    tint = if (hasPrevious || progressMs > BACK_RESTARTS_AFTER_MS) {
+                                        Color.White
+                                    } else {
+                                        DesktopSecondary.copy(alpha = 0.45f)
+                                    },
+                                    modifier = Modifier.size(32.dp),
+                                )
+                            }
                             IconButton(onClick = onPlayPause, modifier = Modifier.size(68.dp).clip(CircleShape).background(Color.White)) {
                                 Icon(if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play", tint = Color.Black, modifier = Modifier.size(34.dp))
                             }
@@ -6536,6 +6581,7 @@ private fun DesktopWideNowPlayingLayout(
     isPlaying: Boolean,
     progressMs: Long,
     durationMs: Long,
+    hasPrevious: Boolean,
     error: String?,
     streamFormat: DesktopStreamFormat?,
     isResolving: Boolean,
@@ -6610,6 +6656,7 @@ private fun DesktopWideNowPlayingLayout(
                 isPlaying = isPlaying,
                 progressMs = progressMs,
                 durationMs = durationMs,
+                hasPrevious = hasPrevious,
                 error = error,
                 streamFormat = streamFormat,
                 isResolving = isResolving,
@@ -6838,6 +6885,7 @@ private fun DesktopPlayerStage(
     isPlaying: Boolean,
     progressMs: Long,
     durationMs: Long,
+    hasPrevious: Boolean,
     error: String?,
     streamFormat: DesktopStreamFormat?,
     isResolving: Boolean,
@@ -7137,8 +7185,20 @@ private fun DesktopPlayerStage(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         val transport = if (roomy) 34.dp else 30.dp
-                        IconButton(onClick = onPrevious) {
-                            Icon(Icons.Rounded.FastRewind, DesktopStrings["widget_previous", "Previous"], tint = Color.White, modifier = Modifier.size(transport))
+                        IconButton(
+                            onClick = onPrevious,
+                            enabled = hasPrevious || progressMs > BACK_RESTARTS_AFTER_MS,
+                        ) {
+                            Icon(
+                                Icons.Rounded.FastRewind,
+                                DesktopStrings["widget_previous", "Previous"],
+                                tint = if (hasPrevious || progressMs > BACK_RESTARTS_AFTER_MS) {
+                                    Color.White
+                                } else {
+                                    DesktopSecondary.copy(alpha = 0.45f)
+                                },
+                                modifier = Modifier.size(transport),
+                            )
                         }
                         IconButton(onClick = onPlayPause) {
                             Icon(
@@ -8136,6 +8196,7 @@ private fun DesktopPlayerBar(
     isPlaying: Boolean,
     isLiked: Boolean,
     progressMs: Long,
+    hasPrevious: Boolean,
     error: String?,
     onExpand: () -> Unit,
     onPlayPause: () -> Unit,
@@ -8167,7 +8228,20 @@ private fun DesktopPlayerBar(
                 }
             }
             IconButton(onClick = onToggleLike) { Icon(if (isLiked) BitChordIcons.HeartFilled else BitChordIcons.Heart, "Favorite", tint = if (isLiked) Color.White else Color.White.copy(alpha = 0.75f)) }
-            IconButton(onClick = onPrevious) { Icon(Icons.Rounded.FastRewind, DesktopStrings["widget_previous", "Previous"]) }
+            IconButton(
+                onClick = onPrevious,
+                enabled = hasPrevious || progressMs > BACK_RESTARTS_AFTER_MS,
+            ) {
+                Icon(
+                    Icons.Rounded.FastRewind,
+                    DesktopStrings["widget_previous", "Previous"],
+                    tint = if (hasPrevious || progressMs > BACK_RESTARTS_AFTER_MS) {
+                        Color.White
+                    } else {
+                        DesktopSecondary.copy(alpha = 0.45f)
+                    },
+                )
+            }
             IconButton(onClick = onPlayPause) { Icon(if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, if (isPlaying) "Pause" else "Play", modifier = Modifier.size(30.dp)) }
             IconButton(onClick = onNext) { Icon(Icons.Rounded.FastForward, DesktopStrings["widget_next", "Next"]) }
             IconButton(onClick = onOpenQueue) { Icon(BitChordIcons.Queue, DesktopStrings["queue", "Queue"]) }
